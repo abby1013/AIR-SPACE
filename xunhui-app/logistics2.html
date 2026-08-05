@@ -32,6 +32,12 @@ input,select,textarea{font-family:inherit;font-size:inherit}
 .bar .ttl{font-weight:700;font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar .sub{font-size:11.5px;opacity:.72;font-weight:400}
 .bar .act{font-size:12.5px;background:rgba(255,255,255,.15);padding:5px 11px;border-radius:100px}
+.sync{font-size:10.5px;padding:3px 9px;border-radius:100px;white-space:nowrap;font-weight:700}
+.sync.ok{background:rgba(74,222,128,.22);color:#bbf7d0}
+.sync.idle{background:rgba(255,255,255,.14);color:rgba(255,255,255,.8)}
+.sync.local{background:rgba(255,212,121,.2);color:#ffe9b8}
+.sync.wait{background:rgba(255,212,121,.28);color:#ffe9b8}
+.sync.err{background:rgba(255,138,128,.28);color:#ffd5d1}
 .body{flex:1;padding:16px}
 
 /* ── home ── */
@@ -148,6 +154,8 @@ th{background:var(--brand);color:#fff;text-align:left;padding:8px 9px;font-size:
 td{padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:middle}
 tbody tr:nth-child(even){background:#fafbfc}
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+.mini{font-size:11px;padding:4px 9px;border-radius:6px;background:var(--soft);
+ border:1px solid var(--line);color:var(--ink2);font-weight:600;cursor:pointer}
 .mini-tr{height:6px;background:var(--line);border-radius:100px;overflow:hidden;min-width:70px}
 .mini-tf{height:100%;background:var(--ok);border-radius:100px}
 .gantt{position:relative;height:22px;background:var(--soft);border-radius:5px;min-width:220px}
@@ -185,22 +193,85 @@ const REGIONS = ['台北','桃園','台中','嘉義','台南','高雄'];
 
 /* ── 資料層（可抽換）───────────────────────────────────── */
 const KEY = 'airspace_logi_v1';
+const QKEY = 'airspace_logi_queue_v1';
+const DKEY = 'airspace_logi_device_v1';
+
 const DB = {
   mode: CFG.apiUrl ? 'sheets' : 'local',
-  d: null,
+  d: null, queue: [], sending:false, lastOk:null, lastErr:null,
+
   load(){
     if(this.d) return this.d;
     try{ this.d = JSON.parse(localStorage.getItem(KEY)) || null; }catch(e){ this.d=null; }
     if(!this.d) this.d = {days:{}, ident:null, ver:1};
+    try{ this.queue = JSON.parse(localStorage.getItem(QKEY)) || []; }catch(e){ this.queue=[]; }
     return this.d;
   },
-  save(){
-    try{ localStorage.setItem(KEY, JSON.stringify(this.d)); }catch(e){}
-    if(this.mode==='sheets') this.push();
+  save(){ try{ localStorage.setItem(KEY, JSON.stringify(this.d)); }catch(e){} },
+  saveQ(){ try{ localStorage.setItem(QKEY, JSON.stringify(this.queue)); }catch(e){} },
+
+  device(){
+    let id=null;
+    try{ id=localStorage.getItem(DKEY); }catch(e){}
+    if(!id){ id='D'+Math.random().toString(36).slice(2,10);
+      try{ localStorage.setItem(DKEY,id); }catch(e){} }
+    return id;
   },
-  async push(){ /* Apps Script 寫入：見 Apps_Script_後端.gs 的 doPost */ },
-  reset(){ this.d={days:{},ident:null,ver:1}; this.save(); }
+
+  /** 排入雲端寫入佇列，立即嘗試送出；失敗留在佇列，下次自動重送 */
+  post(payload){
+    if(this.mode!=='sheets') return;
+    payload.device = this.device();
+    payload._t = Date.now();
+    this.queue.push(payload); this.saveQ();
+    this.flush();
+  },
+
+  async flush(){
+    if(this.mode!=='sheets' || this.sending || !this.queue.length) return;
+    this.sending = true;
+    try{
+      while(this.queue.length){
+        const item = this.queue[0];
+        // 不設 Content-Type，讓瀏覽器送 text/plain，避開 Apps Script 的 CORS preflight
+        const r = await fetch(CFG.apiUrl, { method:'POST', body: JSON.stringify(item) });
+        const j = await r.json();
+        if(!j || j.ok===false) throw new Error((j&&j.error)||'伺服器回傳失敗');
+        this.queue.shift(); this.saveQ();
+        this.lastOk = new Date(); this.lastErr = null;
+      }
+    }catch(e){
+      this.lastErr = String(e && e.message ? e.message : e);
+    }finally{
+      this.sending = false;
+      syncBadge();
+    }
+  },
+
+  reset(){
+    this.d={days:{},ident:null,ver:1}; this.queue=[];
+    this.save(); this.saveQ();
+  }
 };
+
+/* 同步狀態指示（司機端右上角小字）*/
+function syncStatus(){
+  if(DB.mode!=='sheets') return {k:'local', t:'本機模式'};
+  if(DB.queue.length) return {k:'wait', t:'待同步 '+DB.queue.length+' 筆'};
+  if(DB.lastErr)      return {k:'err',  t:'同步失敗'};
+  if(DB.lastOk)       return {k:'ok',   t:'已同步'};
+  return {k:'idle', t:'雲端模式'};
+}
+function syncBadge(){
+  const el = document.getElementById('syncBadge');
+  if(!el) return;
+  const s = syncStatus();
+  el.className = 'sync '+s.k;
+  el.textContent = s.t;
+}
+/* 每 20 秒自動重送未成功的資料（訊號恢復後自動補上）*/
+setInterval(()=>{ if(DB.queue.length) DB.flush(); }, 20000);
+window.addEventListener('online', ()=>DB.flush());
 
 /* ── 工具 ─────────────────────────────────────────────── */
 const TASKMAP = {}; M.tasks.forEach(t=>TASKMAP[t[0]]={code:t[0],name:t[1],kind:t[2],onlyType:t[3]||''});
@@ -390,7 +461,7 @@ function viewHome(){
       <div class="secttl">管理端</div>
       <button class="btn btn-gh" onclick="go('admin')">倉儲部 ／ 總部看板</button>
     </div>
-    <div class="foot">v1.0 · 資料模式：${DB.mode==='local'?'本機（示範）':'Google Sheets'}<br>
+    <div class="foot">v1.5 · 資料模式：<b>${DB.mode==='local'?'本機（示範）':'Google Sheets 雲端'}</b>${DB.queue.length?`　·　<span style="color:var(--warn)">待同步 ${DB.queue.length} 筆</span>`:''}${DB.lastErr?`<br><span style="color:var(--bad)">同步錯誤：${esc(DB.lastErr)}</span>`:''}<br>
       <a class="linkbtn" href="javascript:void(0)" onclick="if(confirm('確定清除本機所有打卡與回報資料？'))(DB.reset(),render())">清除本機資料</a>
     </div>
   </div>`;
@@ -476,6 +547,7 @@ function shellDay(drv,day,c,inner){
   return `<div class="app">
     <div class="bar"><button class="back" onclick="go('home')">‹</button>
       <div class="ttl">${esc(drv.name)}<div class="sub">${esc(day.routeName||RTE[drv.route].name)} · ${ST.date} 週${WD[dowOf(ST.date)]}</div></div>
+      <span id="syncBadge" class="sync ${syncStatus().k}">${syncStatus().t}</span>
       <button class="act" onclick="go('home')">切換</button></div>
     <div class="prog">
       <div class="row"><div><div class="big">${c.pct}<span style="font-size:16px">%</span></div><div class="lb">今日完成度</div></div>
@@ -491,7 +563,13 @@ function shellDay(drv,day,c,inner){
 function clockIn(i){
   const day=ensureDay(ST.driver,ST.date), s=day.stops[i];
   const t=nowHM();
-  grabGeo(g=>{ s.inAt=t; s.inGeo=g; s.inISO=nowISO(); DB.save(); go('stop',{stop:i}); });
+  grabGeo(g=>{
+    s.inAt=t; s.inGeo=g; s.inISO=nowISO(); DB.save();
+    DB.post({action:'punch', driver:ST.driver, stopId:s.id, act:'到店',
+      planTime:s.arrive, storeId:(s.stores||[])[0]||'',
+      lat:g?g.lat:'', lng:g?g.lng:''});
+    go('stop',{stop:i});
+  });
 }
 function clockOut(){
   const day=ensureDay(ST.driver,ST.date), s=day.stops[ST.stop];
@@ -502,11 +580,24 @@ function clockOut(){
 function doOut(){
   const day=ensureDay(ST.driver,ST.date), s=day.stops[ST.stop];
   const t=nowHM();
-  grabGeo(g=>{ s.outAt=t; s.outGeo=g; s.outISO=nowISO(); ST.modal=null; DB.save(); go('day'); });
+  grabGeo(g=>{
+    s.outAt=t; s.outGeo=g; s.outISO=nowISO(); ST.modal=null; DB.save();
+    DB.post({action:'punch', driver:ST.driver, stopId:s.id, act:'離店',
+      planTime:s.leave, storeId:(s.stores||[])[0]||'',
+      lat:g?g.lat:'', lng:g?g.lng:''});
+    // 離店時把該站所有已處理項目一併補送，確保不漏
+    const h=host(day,s);
+    (h.tasks||[]).forEach(t2=>{ if(t2.sched!==false && t2.st)
+      DB.post({action:'task', driver:ST.driver, stopId:h.id, storeId:(h.stores||[])[0]||'',
+        code:t2.code, name:t2.name, st:stName(t2.st), reason:t2.reason||''}); });
+    go('day');
+  });
 }
 function closeDay(){
   const day=ensureDay(ST.driver,ST.date);
-  day.closed=true; day.closedAt=nowHM(); DB.save(); render();
+  day.closed=true; day.closedAt=nowHM(); DB.save();
+  DB.post({action:'closeDay', driver:ST.driver});
+  render();
 }
 
 /* ── 站點作業 ── */
@@ -575,25 +666,86 @@ function modalOut(){
     <button class="btn btn-gh" onclick="doOut()">仍要離店（記為未回報）</button>
   </div></div>`;
 }
+function stName(st){ return st==='done'?'完成':st==='miss'?'未完成':st==='na'?'不適用':''; }
+
 function setTask(ti,v){
-  const day=ensureDay(ST.driver,ST.date), t=host(day,day.stops[ST.stop]).tasks[ti];
+  const day=ensureDay(ST.driver,ST.date), h=host(day,day.stops[ST.stop]);
+  const t=h.tasks[ti];
   if(!t || t.sched===false) return;          // 本日未排程的項目不可操作
   t.st = (t.st===v? null : v); t.at = t.st? nowHM(): null;
   if(t.st==='done'){ t.reason=null; }
-  DB.save(); render();
+  DB.save();
+  if(t.st) DB.post({action:'task', driver:ST.driver, stopId:h.id,
+    storeId:(h.stores||[])[0]||'', code:t.code, name:t.name,
+    st:stName(t.st), reason:t.reason||''});
+  render();
 }
-function setReason(ti,v){ const d=ensureDay(ST.driver,ST.date); host(d,d.stops[ST.stop]).tasks[ti].reason=v||null; DB.save(); }
+function setReason(ti,v){
+  const d=ensureDay(ST.driver,ST.date), h=host(d,d.stops[ST.stop]), t=h.tasks[ti];
+  t.reason=v||null; DB.save();
+  if(t.st) DB.post({action:'task', driver:ST.driver, stopId:h.id,
+    storeId:(h.stores||[])[0]||'', code:t.code, name:t.name,
+    st:stName(t.st), reason:t.reason||''});
+}
 function allDone(){
   const day=ensureDay(ST.driver,ST.date);
-  host(day,day.stops[ST.stop]).tasks.forEach(t=>{ if(t.sched!==false && !t.st){ t.st='done'; t.at=nowHM(); } });
+  const h=host(day,day.stops[ST.stop]);
+  h.tasks.forEach(t=>{ if(t.sched!==false && !t.st){ t.st='done'; t.at=nowHM();
+    DB.post({action:'task', driver:ST.driver, stopId:h.id, storeId:(h.stores||[])[0]||'',
+      code:t.code, name:t.name, st:'完成', reason:''}); } });
   DB.save(); render();
 }
 
 /* ══════════════════════════════════════════════════════════
    管理端
    ══════════════════════════════════════════════════════════ */
+
+/* 雲端當日資料快取。排程在本地生成（規則固定），打卡與勾選由雲端疊加 */
+let CLOUD = {date:null, punches:[], tasks:[], exc:[], at:null, err:null, loading:false};
+
+async function loadCloud(date){
+  if(DB.mode!=='sheets'){ CLOUD={date:date,punches:[],tasks:[],exc:[],at:null,err:null,loading:false}; return; }
+  CLOUD.loading=true; render();
+  try{
+    const r = await fetch(CFG.apiUrl+'?action=board&date='+encodeURIComponent(date));
+    const j = await r.json();
+    if(!j || j.ok===false) throw new Error((j&&j.error)||'讀取失敗');
+    CLOUD = {date:date, punches:j.punches||[], tasks:j.tasks||[], exc:j.exc||[],
+             at:new Date(), err:null, loading:false};
+  }catch(e){
+    CLOUD.loading=false; CLOUD.err=String(e&&e.message?e.message:e); CLOUD.date=date;
+  }
+  render();
+}
+
+/** 把雲端的打卡與項目狀態疊加到本地生成的當日排程上 */
+function applyCloud(day){
+  if(DB.mode!=='sheets' || CLOUD.date!==day.date) return day;
+  const P = CLOUD.punches.filter(x=>String(x['司機ID'])===day.driver);
+  const T = CLOUD.tasks  .filter(x=>String(x['司機ID'])===day.driver);
+  const S2M = {'完成':'done','未完成':'miss','不適用':'na','未回報':null};
+  (day.stops||[]).forEach(s=>{
+    const pi = P.filter(x=>String(x['站點ID'])===s.id && String(x['動作'])==='到店')[0];
+    const po = P.filter(x=>String(x['站點ID'])===s.id && String(x['動作'])==='離店')[0];
+    if(pi){ s.inAt  = fmtHM(pi['伺服器時間']); }
+    if(po){ s.outAt = fmtHM(po['伺服器時間']); }
+    (s.tasks||[]).forEach(t=>{
+      const rec = T.filter(x=>String(x['站點ID'])===s.id && String(x['項目代碼'])===t.code)[0];
+      if(rec){ t.st = S2M[String(rec['狀態'])] || null; t.reason = rec['未完成原因']||null; }
+    });
+  });
+  return day;
+}
+function fmtHM(v){
+  if(v instanceof Date) return pad(v.getHours())+':'+pad(v.getMinutes());
+  const m = String(v||'').match(/(\d{1,2}):(\d{2})/);
+  return m ? pad(+m[1])+':'+m[2] : String(v||'');
+}
 function viewAdmin(){
   const tab=ST.tab||'board';
+  if(DB.mode==='sheets' && !CLOUD.loading && CLOUD.date!==ST.date && !CLOUD.err){
+    setTimeout(()=>loadCloud(ST.date),0);
+  }
   return `<div class="app wide">
     <div class="bar"><button class="back" onclick="go('home')">‹</button>
       <div class="ttl">管理端<div class="sub">倉儲部即時看板 ／ 總部完成度儀表</div></div></div>
@@ -613,7 +765,7 @@ function activeDrivers(){ return M.drivers.filter(d=>d[8]==='在職').map(d=>DRV
 function tabBoard(){
   const date=ST.date, dow=dowOf(date);
   const rows=activeDrivers().map(d=>{
-    const day=ensureDay(d.id,date), c=calc(day);
+    const day=applyCloud(ensureDay(d.id,date)), c=calc(day);
     const cur=(day.stops||[]).find(s=>s.inAt&&!s.outAt);
     const nxt=(day.stops||[]).find(s=>!s.inAt);
     const nm=nowHM();
@@ -636,7 +788,7 @@ function tabBoard(){
     </tr>`;
   }).join('');
 
-  const all=activeDrivers().map(d=>calc(ensureDay(d.id,date)));
+  const all=activeDrivers().map(d=>calc(applyCloud(ensureDay(d.id,date))));
   const tot=all.reduce((a,b)=>({den:a.den+b.den,done:a.done+b.done,miss:a.miss+b.miss,unrep:a.unrep+b.unrep,late:a.late+b.late}),{den:0,done:0,miss:0,unrep:0,late:0});
   const pct=tot.den>0?Math.round(tot.done/tot.den*1000)/10:0;
 
@@ -646,10 +798,16 @@ function tabBoard(){
     <div class="c"><div class="k">遲到次數</div><div class="v">${tot.late}</div><div class="d">容差 ±${CFG.toleranceMin} 分</div></div>
     <div class="c"><div class="k">未完成／未回報</div><div class="v">${tot.miss+tot.unrep}</div><div class="d">需追蹤</div></div>
   </div>
-  <div style="display:flex;gap:9px;align-items:center;margin-bottom:11px">
-    <input type="date" value="${date}" onchange="go('admin',{date:this.value,tab:'board'})"
+  <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:11px">
+    <input type="date" value="${date}" onchange="go('admin',{date:this.value,tab:'board'});loadCloud(this.value)"
       style="padding:8px 11px;border:1.5px solid var(--line);border-radius:8px">
-    <span style="font-size:12.5px;color:var(--ink3)">星期${WD[dow]}　·　每 30 秒自動更新</span>
+    <span style="font-size:12.5px;color:var(--ink3)">星期${WD[dow]}</span>
+    ${DB.mode==='sheets'
+      ? `<button class="mini" style="padding:7px 13px" onclick="loadCloud('${date}')">${CLOUD.loading?'讀取中…':'重新載入雲端'}</button>
+         <span style="font-size:12px;color:${CLOUD.err?'var(--bad)':'var(--ink3)'}">
+         ${CLOUD.err?('雲端讀取失敗：'+esc(CLOUD.err))
+           :(CLOUD.at&&CLOUD.date===date)?('雲端資料 '+pad(CLOUD.at.getHours())+':'+pad(CLOUD.at.getMinutes())+' 更新　打卡 '+CLOUD.punches.length+' 筆'):'尚未載入雲端資料，請按「重新載入雲端」'}</span>`
+      : `<span style="font-size:12px;color:var(--warn)">本機示範模式 —— 只看得到這台裝置的資料。填入 CFG.apiUrl 後才會顯示全台司機。</span>`}
   </div>
   <div class="tw"><table>
     <thead><tr><th>司機</th><th>狀態</th><th>時間軸（灰＝預定 ／ 藍＝實際）</th><th>完成度</th><th class="c">到站</th><th class="c">遲到</th><th class="c">異常</th></tr></thead>
@@ -681,7 +839,7 @@ function weekOf(dateStr){
 function tabDash(){
   const days=weekOf(ST.date);
   const rows=activeDrivers().map(d=>{
-    const cs=days.map(dt=>calc(ensureDay(d.id,dt)));
+    const cs=days.map(dt=>calc(applyCloud(ensureDay(d.id,dt))));
     const den=cs.reduce((a,c)=>a+c.den,0), done=cs.reduce((a,c)=>a+c.done,0);
     const pct=den>0?Math.round(done/den*1000)/10:0;
     const na=cs.reduce((a,c)=>a+c.na,0), need=cs.reduce((a,c)=>a+c.need,0);
@@ -714,7 +872,7 @@ function tabReason(){
   const days=weekOf(ST.date), cnt={}, byDrv={};
   activeDrivers().forEach(d=>{
     days.forEach(dt=>{
-      const day=ensureDay(d.id,dt);
+      const day=applyCloud(ensureDay(d.id,dt));
       (day.stops||[]).forEach(s=>(s.tasks||[]).forEach(t=>{
         if(t.st==='miss'||t.st==='na'){
           const k=t.reason||'（未填原因）';
@@ -917,7 +1075,11 @@ function tabMaster(){
 }
 
 /* ── 看板自動更新 ── */
-setInterval(()=>{ if(ST.view==='admin'&&ST.tab==='board') render(); }, 30000);
+setInterval(()=>{
+  if(ST.view==='admin' && ST.tab==='board'){
+    if(DB.mode==='sheets') loadCloud(ST.date); else render();
+  }
+}, 30000);
 
 /* ── 啟動 ── */
 DB.load(); render();
