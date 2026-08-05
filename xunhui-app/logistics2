@@ -1,1 +1,926 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>AIR SPACE 倉儲物流工作回報系統</title>
+<style>
+:root{
+ --ink:#14161a;--ink2:#454c56;--ink3:#7a828d;--line:#e4e7eb;--soft:#f5f6f8;
+ --brand:#0f2f4f;--brand2:#1b4a78;--accent:#c8102e;
+ --ok:#0f7b4f;--okbg:#e8f5ee;--warn:#9a6100;--warnbg:#fff5e0;
+ --bad:#b3261e;--badbg:#fdeceb;--info:#1a4f8a;--infobg:#eaf1fa;
+ --lock:#aab1ba;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--soft);color:var(--ink);
+ font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,sans-serif;
+ font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;font-size:inherit;cursor:pointer;border:0;background:none;color:inherit}
+input,select,textarea{font-family:inherit;font-size:inherit}
+.hide{display:none!important}
 
+/* ── shell ── */
+.app{max-width:520px;margin:0 auto;min-height:100vh;background:#fff;
+ box-shadow:0 0 40px rgba(0,0,0,.06);display:flex;flex-direction:column}
+.app.wide{max-width:1280px}
+.bar{background:var(--brand);color:#fff;padding:13px 16px;display:flex;align-items:center;
+ gap:11px;position:sticky;top:0;z-index:50}
+.bar .back{font-size:22px;line-height:1;padding:2px 6px;margin-left:-6px;opacity:.9}
+.bar .ttl{font-weight:700;font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .sub{font-size:11.5px;opacity:.72;font-weight:400}
+.bar .act{font-size:12.5px;background:rgba(255,255,255,.15);padding:5px 11px;border-radius:100px}
+.body{flex:1;padding:16px}
+
+/* ── home ── */
+.hero{background:linear-gradient(160deg,var(--brand),var(--brand2));color:#fff;
+ padding:34px 22px 30px;text-align:center}
+.hero .lg{font-size:11px;letter-spacing:.3em;opacity:.7;margin-bottom:10px}
+.hero h1{font-size:21px;margin:0 0 6px;font-weight:700}
+.hero p{font-size:12.5px;opacity:.8;margin:0}
+.pick{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:6px}
+.pick button{background:#fff;border:2px solid var(--line);border-radius:14px;padding:20px 12px;
+ font-size:17px;font-weight:700;color:var(--brand);transition:.12s;text-align:center}
+.pick button:active{transform:scale(.97);border-color:var(--brand)}
+.pick button small{display:block;font-size:11.5px;font-weight:400;color:var(--ink3);margin-top:4px}
+.pick button[disabled]{opacity:.42}
+
+.rlist button{display:block;width:100%;background:#fff;border:2px solid var(--line);
+ border-radius:14px;padding:16px 18px;margin-bottom:11px;text-align:left;transition:.12s}
+.rlist button:active{transform:scale(.985);border-color:var(--brand)}
+.rlist .nm{font-size:17px;font-weight:700;color:var(--brand)}
+.rlist .mt{font-size:12.5px;color:var(--ink3);margin-top:3px}
+.rlist .rt{font-size:12px;color:var(--ink2);margin-top:6px;line-height:1.5}
+.rlist .bd{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;
+ background:var(--warnbg);color:var(--warn);margin-top:7px}
+
+/* ── progress ── */
+.prog{background:var(--brand);color:#fff;padding:14px 16px 16px}
+.prog .row{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:9px}
+.prog .big{font-size:31px;font-weight:800;line-height:1}
+.prog .lb{font-size:11.5px;opacity:.78}
+.prog .tr{height:7px;background:rgba(255,255,255,.22);border-radius:100px;overflow:hidden}
+.prog .tf{height:100%;background:#4ade80;border-radius:100px;transition:width .35s}
+.prog .st{display:flex;gap:14px;margin-top:9px;font-size:11.5px;opacity:.82}
+
+/* ── stop cards ── */
+.stop{border:2px solid var(--line);border-radius:13px;margin-bottom:11px;overflow:hidden;background:#fff}
+.stop.locked{opacity:.55;background:var(--soft)}
+.stop.active{border-color:var(--brand);box-shadow:0 3px 14px rgba(15,47,79,.12)}
+.stop.done{border-color:var(--ok)}
+.stop .hd{padding:13px 15px;display:flex;gap:12px;align-items:flex-start}
+.stop .sq{flex:0 0 30px;height:30px;border-radius:9px;background:var(--soft);color:var(--ink3);
+ display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+.stop.active .sq{background:var(--brand);color:#fff}
+.stop.done .sq{background:var(--ok);color:#fff}
+.stop .in{flex:1;min-width:0}
+.stop .nm{font-weight:700;font-size:15px;line-height:1.35}
+.stop .tm{font-size:12.5px;color:var(--ink2);margin-top:2px;font-variant-numeric:tabular-nums}
+.stop .tags{margin-top:6px;display:flex;flex-wrap:wrap;gap:5px}
+.stop .ft{padding:0 15px 13px}
+.btn{display:block;width:100%;padding:13px;border-radius:10px;font-weight:700;font-size:15px;text-align:center}
+.btn-go{background:var(--brand);color:#fff}
+.btn-out{background:var(--accent);color:#fff}
+.btn-gh{background:var(--soft);color:var(--ink3);border:1px solid var(--line)}
+.btn-ok{background:var(--okbg);color:var(--ok);border:1px solid #b9e0cb}
+.btn:active{opacity:.85}
+.btn[disabled]{background:#e9ecef;color:var(--lock);cursor:not-allowed}
+
+.tag{display:inline-block;padding:1.5px 7px;border-radius:5px;font-size:10.5px;font-weight:700;line-height:1.7}
+.t-ok{background:var(--okbg);color:var(--ok)}
+.t-warn{background:var(--warnbg);color:var(--warn)}
+.t-bad{background:var(--badbg);color:var(--bad)}
+.t-info{background:var(--infobg);color:var(--info)}
+.t-mute{background:#edeff2;color:var(--ink3)}
+.t-v1{background:#e6eefc;color:#1a4f8a}
+.t-v2{background:#fde8f0;color:#a01a55}
+
+/* ── task list ── */
+.tk{border:1.5px solid var(--line);border-radius:11px;padding:12px 14px;margin-bottom:9px;background:#fff}
+.tk.done{background:var(--okbg);border-color:#b9e0cb}
+.tk.miss{background:var(--badbg);border-color:#f0c4c1}
+.tk.na{background:var(--soft);border-color:var(--line);opacity:.8}
+.tk.off{background:var(--soft);border-color:var(--line);opacity:.55}
+.tk.off .cb{border-color:var(--line);background:transparent;color:var(--ink3)}
+.tk.off .nm{font-weight:400;color:var(--ink3)}
+.tk .tr{display:flex;align-items:center;gap:11px}
+.tk .cb{flex:0 0 24px;height:24px;border:2px solid var(--ink3);border-radius:7px;
+ display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff}
+.tk.done .cb{background:var(--ok);border-color:var(--ok)}
+.tk.miss .cb{background:var(--bad);border-color:var(--bad)}
+.tk.na .cb{background:var(--ink3);border-color:var(--ink3)}
+.tk .nm{flex:1;font-weight:600;font-size:14.5px}
+.tk .mini{font-size:11px;padding:4px 9px;border-radius:6px;background:var(--soft);
+ border:1px solid var(--line);color:var(--ink2);font-weight:600}
+.tk .rs{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.tk select,.tk textarea{width:100%;padding:9px 10px;border:1.5px solid var(--line);
+ border-radius:8px;margin-top:6px;background:#fff}
+.tk textarea{resize:vertical;min-height:48px}
+
+.secttl{font-size:12px;letter-spacing:.1em;color:var(--ink3);font-weight:700;margin:20px 0 9px}
+.note{background:var(--infobg);border-left:3px solid var(--info);border-radius:8px;
+ padding:11px 14px;font-size:12.5px;color:var(--ink2);margin-bottom:14px}
+.warnbox{background:var(--warnbg);border-left:3px solid var(--warn);border-radius:8px;
+ padding:11px 14px;font-size:12.5px;color:var(--ink2);margin:12px 0}
+
+/* ── modal ── */
+.mask{position:fixed;inset:0;background:rgba(10,15,22,.55);z-index:200;
+ display:flex;align-items:flex-end;justify-content:center;padding:0}
+.sheet{background:#fff;border-radius:18px 18px 0 0;width:100%;max-width:520px;
+ max-height:88vh;overflow-y:auto;padding:20px 18px calc(18px + env(safe-area-inset-bottom))}
+.sheet h3{margin:0 0 4px;font-size:17px}
+.sheet .sd{font-size:12.5px;color:var(--ink3);margin-bottom:14px}
+
+/* ── admin ── */
+.tabs{display:flex;background:#fff;border-bottom:2px solid var(--line);position:sticky;top:49px;z-index:40}
+.tabs button{flex:1;padding:12px 6px;font-size:13.5px;font-weight:700;color:var(--ink3);
+ border-bottom:3px solid transparent;margin-bottom:-2px}
+.tabs button.on{color:var(--brand);border-bottom-color:var(--accent)}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11px;margin-bottom:16px}
+.kpi .c{background:var(--soft);border:1px solid var(--line);border-radius:11px;padding:13px 15px}
+.kpi .k{font-size:10.5px;letter-spacing:.11em;color:var(--ink3);font-weight:700}
+.kpi .v{font-size:25px;font-weight:800;color:var(--brand);line-height:1.25;margin-top:3px}
+.kpi .d{font-size:11.5px;color:var(--ink3)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:var(--brand);color:#fff;text-align:left;padding:8px 9px;font-size:11.5px;white-space:nowrap}
+td{padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:nth-child(even){background:#fafbfc}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+.mini-tr{height:6px;background:var(--line);border-radius:100px;overflow:hidden;min-width:70px}
+.mini-tf{height:100%;background:var(--ok);border-radius:100px}
+.gantt{position:relative;height:22px;background:var(--soft);border-radius:5px;min-width:220px}
+.gantt i{position:absolute;top:0;height:100%;border-radius:4px;display:block}
+.gantt i.p{background:#cfd6de}
+.gantt i.a{background:var(--brand);opacity:.9;height:60%;top:20%}
+
+.foot{padding:16px;text-align:center;font-size:11.5px;color:var(--ink3);border-top:1px solid var(--line)}
+.linkbtn{color:var(--brand);text-decoration:underline;font-size:12.5px}
+@media(max-width:560px){.app.wide{max-width:100%}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   AIR SPACE 倉儲物流工作回報系統
+   單檔應用 · 資料層可抽換（local / Google Sheets）
+   ══════════════════════════════════════════════════════════ */
+const M = {"tasks":[["CH","撤貨抓貨","AB"],["QK","跨區&區內勻貨","AB"],["YB","勻貨&補貨歸倉","AB"],["XR","新品入倉","AB"],["XZ","新品整理","AB"],["ZH","追加歸倉","AB"],["JJ","集貨寄貨","AB"],["LW","濾網清潔","AB","街邊店"],["F1","收貨確認","FIX"],["F2","送貨確認","FIX"],["F3","包貨","FIX"],["F4","寄貨","FIX"],["F5","歸倉入庫","FIX"],["F6","交接貨物","FIX"],["F7","集中收貨","FIX"],["W1","當週撤貨","FIX"],["W2","跨區轉調","FIX"],["W3","追加進貨歸倉","FIX"]],"reasons":[["R01","門市無人／未開店","門市因素",0,0],["R02","貨未到／貨量不符","供貨因素",0,0],["R03","車輛或交通因素","司機因素",0,1],["R04","臨時支援其他門市","調度因素",0,1],["R05","前站延誤連鎖","排程因素",0,0],["R06","時間不足","排程因素",0,1],["R07","本日未排程此工作項目","不適用",0,0],["R08","系統或設備問題","系統因素",0,0],["R09","主管指示調整","調度因素",0,1],["R99","其他","其他",0,1]],"ab":{"AB_ZJH":{"name":"朱家宏A表","driver":"D01","stores":[["AS46"],["AS59"],["AS79","AS81"]],"m":{"CH":"123","QK":"12","YB":"2345","XR":"3","XZ":"3","ZH":"345","JJ":"12345","LW":"5"}},"AB_LSH":{"name":"李尚鴻B表","driver":"D02","stores":[["AS45"],["AS64"],["AS82"],["AT10"]],"m":{"CH":"12","QK":"12","YB":"2345","XR":"3","XZ":"3","ZH":"345","JJ":"12345","LW":"5"}},"AB_BIN":{"name":"BIN A表","driver":"D03","stores":[["AT05"],["AS38"],["AT03"]],"m":{"CH":"12","QK":"12","YB":"2345","XR":"3","XZ":"3","ZH":"45","JJ":"12345","LW":"5"}},"AB_YT":{"name":"昱廷A表","driver":"D04","stores":[["AS84"],["AS93"],["AS97"]],"m":{"CH":"12","QK":"12","YB":"2345","XR":"3","XZ":"3","ZH":"24","JJ":"12345","LW":"5"}},"AB_YM":{"name":"玉米A表（門市：一中）","driver":"D05","stores":[["AS17"]],"m":{"CH":"1","QK":"124","YB":"345","XR":"4","XZ":"4","ZH":"2345","JJ":"12345","LW":"5"}},"AB_YC":{"name":"易成B表","driver":"D06","stores":[["AS17"],["AT07"]],"m":{"CH":"1","QK":"12","YB":"345","XR":"3","XZ":"3","ZH":"2345","JJ":"12345","LW":"5"}},"AB_ZY":{"name":"兆晏A表","driver":"D07","stores":[["AS89"],["AT04"],["AS95"],["AS96"],["AS72"],["AS86"],["AS35"]],"m":{"CH":"123","QK":"12","YB":"1345","XR":"35","XZ":"35","ZH":"145","JJ":"1345","LW":"5"}}},"drivers":[["D01","朱家宏","E2408031","高雄","R_KH1","09:00","18:00","AB_ZJH","在職"],["D02","李尚鴻","E2408040","高雄","R_KH2","07:00","16:00","AB_LSH","在職"],["D03","陳琮斌","E2508011","台南","R_TN1","12:00","21:00","AB_BIN","在職"],["D04","侯昱廷","E2604019","嘉義","R_CY1","09:00","18:00","AB_YT","在職"],["D05","王昱文","E2604016","台中","R_TC1","10:30","19:30","AB_YM","在職"],["D06","陳易成","","台中","","10:30","19:30","AB_YC","離職"],["D07","陳兆晏","E2509020","桃園","R_TY1","11:00","20:00","AB_ZY","在職"],["D11","（待分配）","","桃園","R_TY2","11:00","20:00","","待招募"],["D08","林柏均","E1803006","台北","R_TP1","09:00","18:00","","在職"],["D09","朱銘澤","","台北","R_TP2","09:00","18:00","","在職"],["D10","（待分配）","","台北","R_TP3","09:00","18:00","","待招募"]],"routes":[["R_KH1","高雄","南高1 · 朱家宏","D01","12345","上線","岡山秀泰 → 左營新光 → 漢神 → 岡山"],["R_KH2","高雄","南高2 · 李尚鴻","D02","12345","上線","夢時代 → 岡山秀泰 → 三多 → 夢時代四櫃"],["R_TN1","台南","南台1 · 陳琮斌","D03","12345","上線","南紡CA → 南紡OL → 新台南"],["R_CY1","嘉義","南嘉1 · 侯昱廷（一三四五）","D04","1345","上線","秀泰 → 文化 → 南紡 → 新台南 → 文化 → 秀泰 → 秀泰 → 文化"],["R_CY2","嘉義","南嘉2 · 侯昱廷（週二 店務支援）","D04","2","上線","嘉義秀泰 → 嘉義大碼 → 嘉義文化（全日門市店務支援，不收送貨）"],["R_TC1","台中","中1 · 王昱文","D05","12345","上線","一中 → 一中大碼 → 一中LADY → 文心大碼 → 文心LADY → 遠百 → 新光 → 逢甲 → 漢神洲際 → 一中支援 → 一中LADY寄貨"],["R_TC2","台中","中2 · 待分配","","12345","待分配","一中 → 漢神 → 逢甲 → 新光 → 一中 → 漢神（排程完整保留，待新司機遞補）"],["R_TY1","桃園","北桃1 · 陳兆晏","D07","12345","上線","大江 → 大江大碼 → 台茂 → 台茂AS → 統領 → 統領大碼"],["R_TY2","桃園","北桃2 · 待分配","D11","12345","建置中","（待新司機遞補後補排程）"],["R_TP1","台北","北1 · 林柏均","D08","12345","建置中","南西區"],["R_TP2","台北","北2 · 朱銘澤","D09","12345","建置中","敦南區"],["R_TP3","台北","北3 · 待分配","D10","12345","建置中","新莊宏匯 → 西門區（含新北）"]],"stations":[{"route":"R_KH1","days":"12345","seq":1,"type":"STORE","stores":["AS46"],"label":"岡山 AS46","arrive":"09:00","leave":"11:00","mode":"HANDOVER","visit":1,"extra":[],"note":"第一次到訪·收送貨","cont":false,"share":0},{"route":"R_KH1","days":"12345","seq":2,"type":"TRAVEL","stores":[],"label":"→ 左營新光","arrive":"11:00","leave":"11:40","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_KH1","days":"12345","seq":3,"type":"STORE","stores":["AS59"],"label":"左營新光 AS59","arrive":"11:40","leave":"13:30","mode":"WORK","visit":1,"extra":["F1","F2"],"note":"","cont":false,"share":0},{"route":"R_KH1","days":"12345","seq":4,"type":"REST","stores":[],"label":"休息","arrive":"13:30","leave":"14:30","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_KH1","days":"12345","seq":5,"type":"TRAVEL","stores":[],"label":"→ 漢神","arrive":"14:30","leave":"15:00","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_KH1","days":"12345","seq":6,"type":"STORE","stores":["AS79","AS81"],"label":"高雄漢神 AS79+AS81","arrive":"15:00","leave":"16:30","mode":"WORK","visit":1,"extra":["F1","F2"],"note":"","cont":false,"share":0},{"route":"R_KH1","days":"12345","seq":7,"type":"TRAVEL","stores":[],"label":"→ 岡山（含寄貨）","arrive":"16:30","leave":"17:30","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_KH1","days":"12345","seq":8,"type":"STORE","stores":["AS46"],"label":"岡山 AS46","arrive":"17:30","leave":"18:00","mode":"WORK","visit":2,"extra":["F5","F3"],"note":"第二次到訪·門市指派項目","cont":false,"share":0},{"route":"R_KH2","days":"12345","seq":1,"type":"STORE","stores":["AS45"],"label":"夢時代 AS45","arrive":"07:00","leave":"08:00","mode":"HANDOVER","visit":1,"extra":["F7"],"note":"集中收貨","cont":false,"share":0},{"route":"R_KH2","days":"12345","seq":2,"type":"TRAVEL","stores":[],"label":"→ 岡山","arrive":"08:00","leave":"09:00","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_KH2","days":"12345","seq":3,"type":"STORE","stores":["AS46"],"label":"岡山 AS46","arrive":"09:00","leave":"09:30","mode":"HANDOVER","visit":1,"extra":["F6"],"note":"","cont":false,"share":0},{"route":"R_KH2","days":"12345","seq":4,"type":"TRAVEL","stores":[],"label":"→ 三多","arrive":"09:30","leave":"10:30","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_KH2","days":"12345","seq":5,"type":"STORE","stores":["AS83"],"label":"三多遠百 AS83","arrive":"10:30","leave":"11:00","mode":"HANDOVER","visit":1,"extra":["F6"],"note":"","cont":false,"share":0},{"route":"R_KH2","days":"12345","seq":6,"type":"TRAVEL","stores":[],"label":"→ 夢時代","arrive":"11:00","leave":"11:30","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_KH2","days":"12345","seq":7,"type":"REST","stores":[],"label":"休息","arrive":"11:30","leave":"12:30","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_KH2","days":"12345","seq":8,"type":"STORE","stores":["AS45"],"label":"① 夢時代 AS45","arrive":"12:30","leave":"13:10","mode":"WORK","visit":2,"extra":[],"note":"","cont":false,"share":0},{"route":"R_KH2","days":"12345","seq":9,"type":"STORE","stores":["AS64"],"label":"② 夢時代大碼 AS64","arrive":"13:10","leave":"13:50","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_KH2","days":"12345","seq":10,"type":"STORE","stores":["AS82"],"label":"③ 夢時代CA AS82","arrive":"13:50","leave":"14:25","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_KH2","days":"12345","seq":11,"type":"STORE","stores":["AT10"],"label":"④ 夢時代IP AT10","arrive":"14:25","leave":"15:00","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_KH2","days":"12345","seq":12,"type":"SHIP","stores":[],"label":"寄貨作業","arrive":"15:00","leave":"16:00","mode":"SHIP","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TN1","days":"12345","seq":1,"type":"STORE","stores":["AT05"],"label":"南紡 AT05（CA）","arrive":"12:00","leave":"14:00","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TN1","days":"12345","seq":2,"type":"STORE","stores":["AS38"],"label":"南紡LADY AS38（OL）","arrive":"14:00","leave":"16:00","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TN1","days":"12345","seq":3,"type":"TRAVEL","stores":[],"label":"→ 新台南","arrive":"16:00","leave":"16:30","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TN1","days":"12345","seq":4,"type":"STORE","stores":["AT03"],"label":"新台南 AT03","arrive":"16:30","leave":"18:00","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TN1","days":"12345","seq":5,"type":"REST","stores":[],"label":"休息","arrive":"18:00","leave":"19:00","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TN1","days":"12345","seq":6,"type":"STORE","stores":["AT03"],"label":"新台南 AT03","arrive":"19:00","leave":"21:00","mode":"WORK","visit":2,"extra":[],"note":"用餐後續作 · 接續 16:30 尚未完成的項目","cont":false,"share":4},{"route":"R_CY1","days":"1345","seq":1,"type":"STORE","stores":["AS84"],"label":"嘉義秀泰 AS84","arrive":"09:00","leave":"09:35","mode":"HANDOVER","visit":1,"extra":["F1"],"note":"進店收貨·確認岡山寄達","cont":false,"share":0},{"route":"R_CY1","days":"1345","seq":2,"type":"TRAVEL","stores":[],"label":"→ 嘉義文化","arrive":"09:35","leave":"09:40","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_CY1","days":"1345","seq":3,"type":"STORE","stores":["AS93"],"label":"嘉義文化 AS93","arrive":"09:40","leave":"09:55","mode":"HANDOVER","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_CY1","days":"1345","seq":4,"type":"TRAVEL","stores":[],"label":"→ 台南南紡（85 分）","arrive":"09:55","leave":"11:20","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_CY1","days":"1345","seq":5,"type":"STORE","stores":["AT05"],"label":"南紡 AT05","arrive":"11:20","leave":"12:00","mode":"HANDOVER","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_CY1","days":"1345","seq":6,"type":"TRAVEL","stores":[],"label":"→ 新台南","arrive":"12:00","leave":"12:30","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_CY1","days":"1345","seq":7,"type":"STORE","stores":["AT03"],"label":"新台南 AT03","arrive":"12:30","leave":"12:50","mode":"HANDOVER","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_CY1","days":"1345","seq":8,"type":"TRAVEL","stores":[],"label":"→ 返程嘉義","arrive":"12:50","leave":"13:00","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_CY1","days":"1345","seq":9,"type":"REST","stores":[],"label":"休息","arrive":"13:00","leave":"14:00","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_CY1","days":"1345","seq":10,"type":"TRAVEL","stores":[],"label":"→ 嘉義文化","arrive":"14:00","leave":"15:00","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_CY1","days":"1345","seq":11,"type":"STORE","stores":["AS93"],"label":"嘉義文化 AS93","arrive":"15:00","leave":"15:50","mode":"HANDOVER","visit":2,"extra":[],"note":"","cont":false,"share":0},{"route":"R_CY1","days":"1345","seq":12,"type":"TRAVEL","stores":[],"label":"→ 嘉義秀泰","arrive":"15:50","leave":"16:00","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_CY1","days":"1345","seq":13,"type":"STORE","stores":["AS84"],"label":"嘉義秀泰 AS84","arrive":"16:00","leave":"16:30","mode":"SHIP","visit":2,"extra":[],"note":"到店寄貨、包貨","cont":false,"share":0},{"route":"R_CY1","days":"1345","seq":14,"type":"STORE","stores":["AS84"],"label":"嘉義秀泰 AS84","arrive":"16:30","leave":"17:00","mode":"WORK","visit":3,"extra":[],"note":"原 84 倉，已改為嘉義秀泰門市","cont":false,"share":0},{"route":"R_CY1","days":"1345","seq":15,"type":"STORE","stores":["AS93"],"label":"嘉義文化 AS93","arrive":"17:00","leave":"18:00","mode":"WORK","visit":3,"extra":["F1","F2"],"note":"","cont":false,"share":0},{"route":"R_CY2","days":"2","seq":1,"type":"STORE","stores":["AS84"],"label":"① 嘉義秀泰 AS84","arrive":"09:00","leave":"12:00","mode":"WORK","visit":1,"extra":[],"note":"門市店務支援 · 不收送貨","cont":false,"share":0},{"route":"R_CY2","days":"2","seq":2,"type":"STORE","stores":["AS84"],"label":"② 嘉義秀泰 AS84","arrive":"12:00","leave":"13:00","mode":"WORK","visit":2,"extra":[],"note":"店務支援續作 · 接續 09:00 尚未完成的項目","cont":false,"share":1},{"route":"R_CY2","days":"2","seq":3,"type":"REST","stores":[],"label":"休息","arrive":"13:00","leave":"14:00","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_CY2","days":"2","seq":4,"type":"STORE","stores":["AS97"],"label":"③ 嘉義大碼 AS97","arrive":"14:00","leave":"14:30","mode":"WORK","visit":1,"extra":[],"note":"門市店務支援 · 不收送貨","cont":false,"share":0},{"route":"R_CY2","days":"2","seq":5,"type":"TRAVEL","stores":[],"label":"→ 嘉義文化","arrive":"14:30","leave":"14:45","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_CY2","days":"2","seq":6,"type":"STORE","stores":["AS93"],"label":"④ 嘉義文化 AS93","arrive":"14:45","leave":"15:45","mode":"WORK","visit":1,"extra":[],"note":"門市店務支援 · 不收送貨","cont":false,"share":0},{"route":"R_CY2","days":"2","seq":7,"type":"STORE","stores":["AS93"],"label":"⑤ 嘉義文化 AS93","arrive":"15:45","leave":"17:00","mode":"WORK","visit":2,"extra":[],"note":"店務支援續作 · 接續 14:45 尚未完成的項目","cont":false,"share":6},{"route":"R_CY2","days":"2","seq":8,"type":"STORE","stores":["AS93"],"label":"⑥ 嘉義文化 AS93","arrive":"17:00","leave":"18:00","mode":"WORK","visit":3,"extra":[],"note":"店務支援續作 · 接續 14:45 尚未完成的項目","cont":false,"share":6},{"route":"R_TC1","days":"12345","seq":1,"type":"STORE","stores":["AS17"],"label":"① 一中店 AS17","arrive":"10:30","leave":"10:50","mode":"HANDOVER","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC1","days":"12345","seq":2,"type":"STORE","stores":["AS29"],"label":"② 一中大碼 AS29","arrive":"10:50","leave":"11:10","mode":"HANDOVER","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC1","days":"12345","seq":3,"type":"STORE","stores":["AS25"],"label":"③ 一中LADY AS25","arrive":"11:10","leave":"11:30","mode":"HANDOVER","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC1","days":"12345","seq":4,"type":"TRAVEL","stores":[],"label":"→ 文心","arrive":"11:30","leave":"11:50","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC1","days":"12345","seq":5,"type":"STORE","stores":["AS44"],"label":"④ 文心大碼 AS44","arrive":"11:50","leave":"12:05","mode":"HANDOVER","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC1","days":"12345","seq":6,"type":"STORE","stores":["AS69"],"label":"⑤ 文心LADY AS69","arrive":"12:05","leave":"12:20","mode":"HANDOVER","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC1","days":"12345","seq":7,"type":"TRAVEL","stores":[],"label":"→ 台中遠百","arrive":"12:20","leave":"12:35","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC1","days":"12345","seq":8,"type":"STORE","stores":["AS66"],"label":"⑥ 台中遠百 AS66","arrive":"12:35","leave":"12:50","mode":"HANDOVER","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC1","days":"12345","seq":9,"type":"TRAVEL","stores":[],"label":"→ 中港新光","arrive":"12:50","leave":"12:55","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC1","days":"12345","seq":10,"type":"STORE","stores":["AS52"],"label":"⑦ 中港新光 AS52","arrive":"12:55","leave":"13:10","mode":"HANDOVER","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC1","days":"12345","seq":11,"type":"TRAVEL","stores":[],"label":"→ 逢甲","arrive":"13:10","leave":"13:20","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC1","days":"12345","seq":12,"type":"STORE","stores":["AS15"],"label":"⑧ 逢甲店 AS15","arrive":"13:20","leave":"13:35","mode":"HANDOVER","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC1","days":"12345","seq":13,"type":"REST","stores":[],"label":"休息","arrive":"13:35","leave":"14:35","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC1","days":"12345","seq":14,"type":"TRAVEL","stores":[],"label":"→ 漢神洲際","arrive":"14:35","leave":"15:00","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC1","days":"12345","seq":15,"type":"STORE","stores":["AT07"],"label":"⑨ 漢神洲際 AT07","arrive":"15:00","leave":"15:40","mode":"HANDOVER","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC1","days":"12345","seq":16,"type":"TRAVEL","stores":[],"label":"→ 一中","arrive":"15:40","leave":"16:00","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC1","days":"12345","seq":17,"type":"STORE","stores":["AS17"],"label":"⑩ 一中店 AS17","arrive":"16:00","leave":"19:00","mode":"WORK","visit":2,"extra":[],"note":"支援一中門市作業 · 依玉米A表當日勾選項目","cont":false,"share":0},{"route":"R_TC1","days":"12345","seq":18,"type":"STORE","stores":["AS25"],"label":"⑪ 一中LADY AS25","arrive":"19:00","leave":"19:30","mode":"FIXED","visit":2,"extra":["JJ"],"note":"集貨寄貨","cont":false,"share":0},{"route":"R_TC2","days":"12345","seq":1,"type":"STORE","stores":["AS17"],"label":"一中店 AS17","arrive":"10:30","leave":"11:00","mode":"HANDOVER","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC2","days":"12345","seq":2,"type":"STORE","stores":["AS25"],"label":"一中LADY AS25","arrive":"10:30","leave":"11:00","mode":"HANDOVER","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC2","days":"12345","seq":3,"type":"TRAVEL","stores":[],"label":"→ 台中漢神","arrive":"11:00","leave":"11:20","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC2","days":"12345","seq":4,"type":"STORE","stores":["AT07"],"label":"台中漢神 AT07","arrive":"11:20","leave":"11:40","mode":"HANDOVER","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC2","days":"12345","seq":5,"type":"TRAVEL","stores":[],"label":"→ 逢甲","arrive":"11:40","leave":"12:00","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC2","days":"12345","seq":6,"type":"STORE","stores":["AS15"],"label":"逢甲店 AS15","arrive":"12:00","leave":"12:10","mode":"HANDOVER","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC2","days":"12345","seq":7,"type":"TRAVEL","stores":[],"label":"→ 新光","arrive":"12:10","leave":"12:20","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC2","days":"12345","seq":8,"type":"STORE","stores":["AS52"],"label":"中港新光 AS52","arrive":"12:20","leave":"12:30","mode":"HANDOVER","visit":1,"extra":["F6"],"note":"","cont":false,"share":0},{"route":"R_TC2","days":"12345","seq":9,"type":"TRAVEL","stores":[],"label":"→ 一中 OL","arrive":"12:30","leave":"13:00","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC2","days":"12345","seq":10,"type":"REST","stores":[],"label":"休息","arrive":"13:00","leave":"14:00","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC2","days":"12345","seq":11,"type":"STORE","stores":["AS17"],"label":"一中店 AS17","arrive":"14:00","leave":"16:00","mode":"WORK","visit":2,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC2","days":"12345","seq":12,"type":"TRAVEL","stores":[],"label":"→ 台中漢神","arrive":"16:00","leave":"16:20","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TC2","days":"12345","seq":13,"type":"STORE","stores":["AT07"],"label":"台中漢神 AT07","arrive":"16:20","leave":"19:30","mode":"WORK","visit":2,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"1","seq":1,"type":"STORE","stores":["AS89"],"label":"① 桃園大江 AS89","arrive":"11:00","leave":"14:00","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"1","seq":2,"type":"REST","stores":[],"label":"休息","arrive":"14:00","leave":"15:00","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"1","seq":3,"type":"STORE","stores":["AT04"],"label":"② 大江大碼 AT04","arrive":"15:00","leave":"17:45","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"1","seq":4,"type":"TRAVEL","stores":[],"label":"→ 台茂","arrive":"17:45","leave":"18:20","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"1","seq":5,"type":"STORE","stores":["AS95"],"label":"③ 桃園台茂 AS95","arrive":"18:20","leave":"18:32","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"1","seq":6,"type":"STORE","stores":["AS96"],"label":"④ 台茂AS AS96","arrive":"18:32","leave":"18:45","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"1","seq":7,"type":"TRAVEL","stores":[],"label":"→ 統領","arrive":"18:45","leave":"19:15","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"1","seq":8,"type":"STORE","stores":["AS72"],"label":"⑤ 桃園統領 AS72","arrive":"19:15","leave":"19:38","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"1","seq":9,"type":"STORE","stores":["AS86"],"label":"⑥ 統領大碼 AS86","arrive":"19:38","leave":"20:00","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"2","seq":1,"type":"STORE","stores":["AS89"],"label":"① 桃園大江 AS89","arrive":"11:00","leave":"11:20","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"2","seq":2,"type":"STORE","stores":["AT04"],"label":"② 大江大碼 AT04","arrive":"11:20","leave":"11:40","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"2","seq":3,"type":"TRAVEL","stores":[],"label":"→ 新竹巨城","arrive":"11:40","leave":"12:50","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"2","seq":4,"type":"STORE","stores":["AS35"],"label":"③ 新竹巨城 AS35","arrive":"12:50","leave":"13:30","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"2","seq":5,"type":"TRAVEL","stores":[],"label":"→ 台茂","arrive":"13:30","leave":"15:00","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"2","seq":6,"type":"STORE","stores":["AS95"],"label":"④ 桃園台茂 AS95","arrive":"15:00","leave":"16:30","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"2","seq":7,"type":"REST","stores":[],"label":"休息","arrive":"16:30","leave":"17:30","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"2","seq":8,"type":"STORE","stores":["AS96"],"label":"⑤ 台茂AS AS96","arrive":"17:30","leave":"18:40","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"2","seq":9,"type":"TRAVEL","stores":[],"label":"→ 統領","arrive":"18:40","leave":"19:00","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"2","seq":10,"type":"STORE","stores":["AS72"],"label":"⑥ 桃園統領 AS72","arrive":"19:00","leave":"19:30","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"2","seq":11,"type":"STORE","stores":["AS86"],"label":"⑦ 統領大碼 AS86","arrive":"19:30","leave":"20:00","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"3","seq":1,"type":"STORE","stores":["AS89"],"label":"① 桃園大江 AS89","arrive":"11:00","leave":"11:20","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"3","seq":2,"type":"STORE","stores":["AT04"],"label":"② 大江大碼 AT04","arrive":"11:20","leave":"11:40","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"3","seq":3,"type":"TRAVEL","stores":[],"label":"→ 台茂","arrive":"11:40","leave":"12:30","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"3","seq":4,"type":"STORE","stores":["AS95"],"label":"③ 桃園台茂 AS95","arrive":"12:30","leave":"13:20","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"3","seq":5,"type":"STORE","stores":["AS96"],"label":"④ 台茂AS AS96","arrive":"13:20","leave":"14:10","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"3","seq":6,"type":"TRAVEL","stores":[],"label":"→ 新竹巨城（80 分）","arrive":"14:10","leave":"15:30","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"3","seq":7,"type":"STORE","stores":["AS35"],"label":"⑤ 新竹巨城 AS35","arrive":"15:30","leave":"16:30","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"3","seq":8,"type":"TRAVEL","stores":[],"label":"→ 統領（回推 60 分）","arrive":"16:30","leave":"17:30","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"3","seq":9,"type":"REST","stores":[],"label":"休息","arrive":"17:30","leave":"18:30","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"3","seq":10,"type":"STORE","stores":["AS72"],"label":"⑥ 桃園統領 AS72","arrive":"18:30","leave":"19:15","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"3","seq":11,"type":"STORE","stores":["AS86"],"label":"⑦ 統領大碼 AS86","arrive":"19:15","leave":"20:00","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"4","seq":1,"type":"STORE","stores":["AS89"],"label":"① 桃園大江 AS89","arrive":"11:00","leave":"15:00","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"4","seq":2,"type":"REST","stores":[],"label":"休息","arrive":"15:00","leave":"16:00","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"4","seq":3,"type":"STORE","stores":["AT04"],"label":"② 大江大碼 AT04","arrive":"16:00","leave":"20:00","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"5","seq":1,"type":"STORE","stores":["AS89"],"label":"① 桃園大江 AS89","arrive":"11:00","leave":"11:15","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"5","seq":2,"type":"STORE","stores":["AT04"],"label":"② 大江大碼 AT04","arrive":"11:15","leave":"11:30","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"5","seq":3,"type":"TRAVEL","stores":[],"label":"→ 新竹巨城（50 分）","arrive":"11:30","leave":"12:20","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"5","seq":4,"type":"STORE","stores":["AS35"],"label":"③ 新竹巨城 AS35","arrive":"12:20","leave":"13:30","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"5","seq":5,"type":"TRAVEL","stores":[],"label":"→ 台茂","arrive":"13:30","leave":"14:30","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"5","seq":6,"type":"REST","stores":[],"label":"休息","arrive":"14:30","leave":"15:30","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"5","seq":7,"type":"STORE","stores":["AS95"],"label":"④ 桃園台茂 AS95","arrive":"15:30","leave":"15:50","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"5","seq":8,"type":"STORE","stores":["AS96"],"label":"⑤ 台茂AS AS96","arrive":"15:50","leave":"16:15","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"5","seq":9,"type":"TRAVEL","stores":[],"label":"→ 統領","arrive":"16:15","leave":"16:50","mode":"","visit":0,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"5","seq":10,"type":"STORE","stores":["AS72"],"label":"⑥ 桃園統領 AS72","arrive":"16:50","leave":"18:25","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0},{"route":"R_TY1","days":"5","seq":11,"type":"STORE","stores":["AS86"],"label":"⑦ 統領大碼 AS86","arrive":"18:25","leave":"20:00","mode":"WORK","visit":1,"extra":[],"note":"","cont":false,"share":0}],"stores":[{"id":"AS04","name":"敦南AS店","type":"街邊店","dept":"北區","area":"北二","mgr":"樺樺","city":"台北","dist":"大安區","line":"AS","grade":"B","mall":"門市","addr":"台北市大安區敦化南路一段187巷50號","hours":"週一-週日13:30-22:30","lat":"","lng":""},{"id":"AS05","name":"敦南LADY店","type":"街邊店","dept":"北區","area":"北二","mgr":"樺樺","city":"台北","dist":"大安區","line":"OL","grade":"B","mall":"門市","addr":"台北市大安區敦化南路一段187巷52號","hours":"週一-週日13:30-22:30","lat":"","lng":""},{"id":"AS07","name":"南西大碼店","type":"街邊店","dept":"北區","area":"北五","mgr":"RIISA","city":"台北","dist":"中山區","line":"PLUS","grade":"AA+","mall":"門市","addr":"台北市中山區中山北路二段20巷20號","hours":"週一-週五13:00-22:00∕週六-週日12:30-22:00","lat":"","lng":""},{"id":"AS10","name":"大安店","type":"街邊店","dept":"北區","area":"北二","mgr":"LULU","city":"台北","dist":"大安區","line":"AS+OL","grade":"A","mall":"門市","addr":"台北市大安區大安路一段63號","hours":"週日-週一12:00-22:30/週五-週六12:00-23:00","lat":"","lng":""},{"id":"AS12","name":"西門大碼店","type":"街邊店","dept":"北區","area":"北五","mgr":"RIISA","city":"台北","dist":"萬華區","line":"PLUS","grade":"A","mall":"門市","addr":"台北市萬華區西寧南路129號第5室","hours":"週一-週五14:00-23:00∕週六-週日13:30-23:00","lat":"","lng":""},{"id":"AS15","name":"逢甲店","type":"街邊店","dept":"中區","area":"中一","mgr":"泡泡","city":"台中","dist":"逢甲區","line":"AS+OL","grade":"B","mall":"門市","addr":"台中市西屯區文華路75號","hours":"週日-週四15:00-00:00/週五-週六15:30-00:30","lat":"","lng":""},{"id":"AS17","name":"一中店","type":"街邊店","dept":"中區","area":"中一","mgr":"泡泡","city":"台中","dist":"一中區","line":"AS+CA","grade":"A","mall":"門市","addr":"台中市北區育才街33-1號","hours":"週日-週四13:30-22:30/週五-週六13:30-23:00","lat":"","lng":""},{"id":"AS24","name":"南西LADY店","type":"街邊店","dept":"北區","area":"北一","mgr":"含含","city":"台北","dist":"中山區","line":"OL","grade":"AA+","mall":"門市","addr":"台北市中山區南京西路23巷5號","hours":"週一-週日12:00-22:00","lat":"","lng":""},{"id":"AS25","name":"一中LADY店","type":"街邊店","dept":"中區","area":"中一","mgr":"泡泡","city":"台中","dist":"一中區","line":"OL","grade":"B","mall":"門市","addr":"台中市北區一中街169號","hours":"週日-週四13:30-22:30/∕週五-週六13:30-23:00","lat":"","lng":""},{"id":"AS29","name":"一中大碼店","type":"街邊店","dept":"中區","area":"中一","mgr":"泡泡","city":"台中","dist":"一中區","line":"PLUS","grade":"A","mall":"門市","addr":"台中市北區育才街35-1號","hours":"週日-週四13:30-22:30/週五-週六13:30-23:00","lat":"","lng":""},{"id":"AS35","name":"新竹巨城LADY店","type":"百貨店","dept":"中區","area":"桃竹","mgr":"Cindy","city":"新竹","dist":"新竹","line":"OL","grade":"A","mall":"巨城","addr":"新竹市東區中央路229號3樓","hours":"週日-週四11:00-21:30∕週五-週六11:00-22:00","lat":"","lng":""},{"id":"AS37","name":"南港CITYLINK店","type":"百貨店","dept":"北區","area":"北二","mgr":"樺樺","city":"台北","dist":"南港區","line":"OL+CA","grade":"C","mall":"City Link","addr":"台北市南港區忠孝東路七段359號B棟2樓","hours":"週日-週四11:00-21:30/週五-週六11:00-22:00","lat":"","lng":""},{"id":"AS38","name":"南紡LADY店","type":"百貨店","dept":"南區","area":"南區","mgr":"姚","city":"台南","dist":"台南","line":"OL","grade":"B","mall":"南紡","addr":"台南市東區中華東路一段358號A2館2樓","hours":"週一-週日11:00-22:00","lat":"","lng":""},{"id":"AS40","name":"中山一店","type":"街邊店","dept":"北區","area":"北一","mgr":"含含","city":"台北","dist":"中山區","line":"AS+OL","grade":"AA+","mall":"門市","addr":"台北市大同區南京西路63號","hours":"週一-週日12:00-22:00","lat":"","lng":""},{"id":"AS44","name":"文心大碼店","type":"百貨店","dept":"中區","area":"中一","mgr":"泡泡","city":"台中","dist":"南屯區","line":"PLUS","grade":"B","mall":"秀泰","addr":"台中市南屯區文心南路289號2樓(秀泰內)","hours":"週一-週五11:00-22:00/週六-週日10:30-22:00","lat":"","lng":""},{"id":"AS45","name":"高雄夢時代店","type":"百貨店","dept":"南區","area":"南區","mgr":"姚","city":"高雄","dist":"高雄","line":"AS+OL","grade":"AA+","mall":"夢時代","addr":"高雄市前鎮區中華五路789號3樓","hours":"週一-週四11:00-22:00/週五11:00-22:30/週六10:30-22:30/週日10:30-22:00","lat":"","lng":""},{"id":"AS46","name":"岡山LADY店","type":"百貨店","dept":"南區","area":"南區","mgr":"LILY","city":"高雄","dist":"高雄","line":"OL","grade":"AA+","mall":"秀泰","addr":"高雄市岡山區大遼里捷安路1巷2號1樓(秀泰內)","hours":"週一-週日11:00-22:00","lat":"","lng":""},{"id":"AS49","name":"敦南大碼店","type":"街邊店","dept":"北區","area":"北五","mgr":"RIISA","city":"台北","dist":"大安區","line":"PLUS","grade":"B","mall":"門市","addr":"台北市大安區敦化南路一段187巷34號","hours":"週一-週日13:30-22:30","lat":"","lng":""},{"id":"AS51","name":"麗寶OUTLET店","type":"百貨店","dept":"中區","area":"桃竹","mgr":"Cindy","city":"台中","dist":"后里區","line":"OUTLET","grade":"AA","mall":"OUTLET","addr":"台中市后里區福容路201號一期A區1樓(B區星巴克外)","hours":"週一-週四11:00-21:30/週五11:00-22:00/週六10:30-22:00/週日10:30-21:30","lat":"","lng":""},{"id":"AS52","name":"中港新光店","type":"百貨店","dept":"中區","area":"中一","mgr":"泡泡","city":"台中","dist":"西屯區","line":"AS+CA","grade":"A","mall":"SKM","addr":"台中市西屯區臺灣大道三段301號6樓","hours":"週一-週五11:00-22:00/周六-週日10:30-22:00","lat":"","lng":""},{"id":"AS57","name":"南西AS店","type":"街邊店","dept":"北區","area":"北一","mgr":"含含","city":"台北","dist":"中山區","line":"AS","grade":"AA+","mall":"門市","addr":"台北市中山區南京西路23巷1之4號","hours":"週一-週日12:00-22:00","lat":"","lng":""},{"id":"AS59","name":"左營新光店","type":"百貨店","dept":"南區","area":"南區","mgr":"姚","city":"高雄","dist":"高雄","line":"AS+OL","grade":"A","mall":"SKM","addr":"高雄市左營區高鐵路123號3樓(本館春水堂對面)","hours":"週一-週日11:00-22:00","lat":"","lng":""},{"id":"AS61","name":"西門AS店","type":"街邊店","dept":"北區","area":"北二","mgr":"律廷","city":"台北","dist":"萬華區","line":"AS","grade":"AA","mall":"門市","addr":"台北市萬華區西寧南路54號","hours":"週一-週日12:00-23:00","lat":"","lng":""},{"id":"AS62","name":"南西IP店","type":"街邊店","dept":"北區","area":"北一","mgr":"含含","city":"台北","dist":"中山區","line":"IP","grade":"AA+","mall":"門市","addr":"台北市中山區中山北路二段20巷15號","hours":"週一-週日12:00-22:00","lat":"","lng":""},{"id":"AS63","name":"華泰OUTLET店","type":"百貨店","dept":"中區","area":"桃竹","mgr":"Cindy","city":"桃園","dist":"桃園","line":"OUTLET","grade":"AA+","mall":"OUTLET","addr":"桃園市中壢區春德路159號(華泰三期，櫃號1006)","hours":"週一-週四11:00-21:00/週五-週日11:00-22:00","lat":"","lng":""},{"id":"AS64","name":"夢時代大碼店","type":"百貨店","dept":"南區","area":"南區","mgr":"姚","city":"高雄","dist":"高雄","line":"PLUS","grade":"AA+","mall":"夢時代","addr":"高雄市前鎮區中華五路789號7樓","hours":"週一-週四11:00-22:00/週五11:00-22:30/週六10:30-22:30/週日10:30-22:00","lat":"","lng":""},{"id":"AS66","name":"台中遠百店","type":"百貨店","dept":"中區","area":"中一","mgr":"泡泡","city":"台中","dist":"西屯區","line":"AS+OL","grade":"B","mall":"FE","addr":"台中市西屯區臺灣大道三段251號10樓(南棟電梯出口)","hours":"週一-週五11:00-22:00/週六-週日10:30-22:00","lat":"","lng":""},{"id":"AS68","name":"樹林大碼店","type":"百貨店","dept":"北區","area":"北五","mgr":"RIISA","city":"新北","dist":"樹林區","line":"PLUS","grade":"B","mall":"秀泰","addr":"新北市樹林區樹新路40-6號2樓(秀泰內)","hours":"週一-週日11:00-22:00","lat":"","lng":""},{"id":"AS69","name":"文心LADY店","type":"百貨店","dept":"中區","area":"中一","mgr":"泡泡","city":"台中","dist":"南屯區","line":"OL","grade":"B","mall":"秀泰","addr":"台中市南屯區文心南路289號2樓(秀泰內)","hours":"週一-週五11:00-22:00/週六-週日10:30-22:00","lat":"","lng":""},{"id":"AS70","name":"西門三店","type":"街邊店","dept":"北區","area":"北二","mgr":"律廷","city":"台北","dist":"萬華區","line":"OL+CA","grade":"AA","mall":"門市","addr":"台北市萬華區西寧南路147號","hours":"週一-週日12:00-23:00","lat":"","lng":""},{"id":"AS71","name":"中和環球店","type":"百貨店","dept":"北區","area":"北一","mgr":"樺樺","city":"新北","dist":"中和區","line":"OL+CA","grade":"B","mall":"環球","addr":"新北市中和區中山路三段122號2樓","hours":"週一-週日11:00-22:00","lat":"","lng":""},{"id":"AS72","name":"桃園統領店","type":"百貨店","dept":"北區","area":"北二","mgr":"LULU","city":"桃園","dist":"桃園","line":"AS+OL","grade":"B","mall":"統領","addr":"桃園市桃園區中正路61號2樓","hours":"週日-週四11:00~21:30週五-週六11:00~22:00","lat":"","lng":""},{"id":"AS73","name":"新莊宏匯店","type":"百貨店","dept":"北區","area":"北二","mgr":"LULU","city":"新北","dist":"新莊區","line":"AS+OL","grade":"AA","mall":"宏滙","addr":"新北市新莊區新北大道四段3號3樓","hours":"週日-週四11:00-21:30/週五-週六11:00-22:00","lat":"","lng":""},{"id":"AS77","name":"忠孝CHIC.A店","type":"街邊店","dept":"北區","area":"北二","mgr":"樺樺","city":"台北","dist":"大安區","line":"CA","grade":"B","mall":"門市","addr":"台北市大安區敦化南路一段187巷56號","hours":"週一-週日12:30-22:30","lat":"","lng":""},{"id":"AS79","name":"高雄漢神CHIC.A店","type":"百貨店","dept":"南區","area":"南區","mgr":"姚","city":"高雄","dist":"高雄","line":"CA","grade":"B","mall":"漢神","addr":"高雄市左營區博愛二路777號5樓","hours":"週日-週四11:00-22:00/週五-週六11:00-22:30","lat":"","lng":""},{"id":"AS81","name":"高雄漢神LADY店","type":"百貨店","dept":"南區","area":"南區","mgr":"姚","city":"高雄","dist":"高雄","line":"OL","grade":"A","mall":"漢神","addr":"高雄市左營區博愛二路777號5樓","hours":"週日-週四11:00-22:00/週五-週六11:00-22:30","lat":"","lng":""},{"id":"AS82","name":"高雄夢時代CHIC.A店","type":"百貨店","dept":"南區","area":"南區","mgr":"姚","city":"高雄","dist":"高雄","line":"CA","grade":"AA+","mall":"夢時代","addr":"高雄市前鎮區中華五路789號3樓","hours":"週一-週四11:00-22:00/週五11:00-22:30/週六10:30-22:30/週日10:30-22:00","lat":"","lng":""},{"id":"AS83","name":"三多遠百店","type":"百貨店","dept":"南區","area":"南區","mgr":"姚","city":"高雄","dist":"高雄","line":"AS+OL","grade":"A","mall":"FE","addr":"高雄市苓雅區三多四路21號3樓","hours":"週一-週四11:00-21:30/週五-週日11:00-22:00","lat":"","lng":""},{"id":"AS84","name":"嘉義秀泰店","type":"百貨店","dept":"南區","area":"南區","mgr":"LILY","city":"嘉義","dist":"嘉義","line":"AS+OL","grade":"AA","mall":"秀泰","addr":"嘉義市西區文化路299號2樓","hours":"週一-週日11:00-22:00","lat":"","lng":""},{"id":"AS86","name":"統領大碼店","type":"百貨店","dept":"北區","area":"北二","mgr":"LULU","city":"桃園","dist":"桃園","line":"PLUS","grade":"A","mall":"統領","addr":"桃園市桃園區中正路61號3樓","hours":"週日-週四11:00-21:30/週五-週六11:00-22:00","lat":"","lng":""},{"id":"AS88","name":"士林一店","type":"街邊店","dept":"北區","area":"北一","mgr":"律廷","city":"台北","dist":"士林區","line":"AS+OL","grade":"B","mall":"門市","addr":"台北市士林區大東路10之3號、10之4號","hours":"週一-週日15:00-24:00","lat":"","lng":""},{"id":"AS89","name":"桃園大江店","type":"百貨店","dept":"中區","area":"桃竹","mgr":"Cindy","city":"桃園","dist":"桃園","line":"AS+OL+CA","grade":"AA+","mall":"大江","addr":"桃園市中壢區中園路二段501號1樓","hours":"週日-週四11:00-22:00/週五-週六11:00-22:30","lat":"","lng":""},{"id":"AS92","name":"信義ATT店","type":"百貨店","dept":"北區","area":"北二","mgr":"LULU","city":"台北","dist":"信義區","line":"AS+OL+CA","grade":"AA+","mall":"ATT","addr":"台北市信義區松壽路12號2樓","hours":"週日-週四11:00-22:00/周五-週六11:00-23:00","lat":"","lng":""},{"id":"AS93","name":"嘉義文化一店","type":"街邊店","dept":"南區","area":"南區","mgr":"LILY","city":"嘉義","dist":"嘉義","line":"AS+OL","grade":"AA","mall":"門市","addr":"嘉義市西區文化路97號","hours":"週日-週四14:00-23:00/週五-週六13:00-23:30","lat":"","lng":""},{"id":"AS95","name":"桃園台茂店","type":"百貨店","dept":"中區","area":"桃竹","mgr":"Cindy","city":"桃園","dist":"桃園","line":"OL+CA","grade":"A","mall":"台茂","addr":"桃園市蘆竹區南崁路一段112號B2","hours":"週一-週四11:00-22:00/週五11:00-22:30/週六10:30-22:30/週日10:30-22:00","lat":"","lng":""},{"id":"AS96","name":"桃園台茂AS店","type":"百貨店","dept":"中區","area":"桃竹","mgr":"Cindy","city":"桃園","dist":"桃園","line":"AS","grade":"B","mall":"台茂","addr":"桃園市蘆竹區南崁路一段112號B2","hours":"週一-週四11:00-22:00/週五11:00-22:30/週六10:30-22:30/週日10:30-22:00","lat":"","lng":""},{"id":"AS97","name":"嘉義大碼店","type":"百貨店","dept":"南區","area":"南區","mgr":"LILY","city":"嘉義","dist":"嘉義","line":"PLUS","grade":"B","mall":"秀泰","addr":"嘉義市西區文化路299號1樓","hours":"週一-週日11:00-22:00","lat":"","lng":""},{"id":"AT02","name":"板橋遠百LADY店","type":"百貨店","dept":"北區","area":"北一","mgr":"律廷","city":"新北","dist":"板橋區","line":"OL","grade":"B","mall":"FE","addr":"新北市板橋區新站路28號4樓(櫃位編號437)","hours":"週一-週日11:00-22:00","lat":"","lng":""},{"id":"AT03","name":"新台南FOCUS店","type":"百貨店","dept":"南區","area":"南區","mgr":"姚","city":"台南","dist":"台南","line":"AS+OL+PLUS","grade":"AA","mall":"FOCUS","addr":"台南市中西區中山路166號4樓","hours":"週一-週日11:00-22:00","lat":"","lng":""},{"id":"AT04","name":"大江大碼店","type":"百貨店","dept":"中區","area":"桃竹","mgr":"Cindy","city":"桃園","dist":"桃園","line":"PLUS","grade":"C","mall":"大江","addr":"桃園市中壢區中園路二段501號2樓","hours":"週日-週四11:00-22:00/週五-週六11:00-22:30","lat":"","lng":""},{"id":"AT05","name":"南紡店","type":"百貨店","dept":"南區","area":"南區","mgr":"姚","city":"台南","dist":"台南","line":"AS+CA","grade":"A","mall":"南紡","addr":"台南市東區中華東路一段366號A1館2樓","hours":"週一-週日11:00-22:00","lat":"","lng":""},{"id":"AT07","name":"台中漢神店","type":"百貨店","dept":"中區","area":"中一","mgr":"泡泡","city":"台中","dist":"北屯區","line":"AS+OL","grade":"AA+","mall":"漢神","addr":"台中市北屯區崇德路三段4樓","hours":"週一-週日11:00-22:00","lat":"","lng":""},{"id":"AT08","name":"台南三井OUTLET店","type":"百貨店","dept":"南區","area":"南區","mgr":"姚","city":"台南","dist":"台南","line":"OUTLET","grade":"B","mall":"三井","addr":"臺南市歸仁區歸仁大道101號3樓","hours":"週一-週日11:00-21:30","lat":"","lng":""},{"id":"AT10","name":"夢時代IP店","type":"百貨店","dept":"南區","area":"南區","mgr":"姚","city":"高雄","dist":"高雄","line":"IP","grade":"AA+","mall":"夢時代","addr":"高雄市前鎮區中華五路789號7樓","hours":"週一-週四11:00-22:00/週五11:00-22:30/週六10:30-22:30/週日10:30-22:00","lat":"","lng":""},{"id":"AT11","name":"一中IP店","type":"街邊店","dept":"中區","area":"中一","mgr":"泡泡","city":"台中","dist":"一中區","line":"IP","grade":"AA","mall":"門市","addr":"","hours":"","lat":"","lng":""},{"id":"AT01","name":"板橋遠百大碼店","type":"百貨店","dept":"","area":"北五","mgr":"","city":"新北","dist":"板橋區","line":"PLUS","grade":"","mall":"","addr":"","hours":"","lat":"","lng":""}]};
+
+/* ── 設定 ─────────────────────────────────────────────── */
+const CFG = {
+  toleranceMin: 10,      // 準時容差
+  overdueMin: 15,        // 逾時判定
+  travelSlackMin: 20,    // 車程異常
+  naAlertPct: 20,        // 不適用率門檻
+  captureGeo: true,      // 靜默定位
+  apiUrl: 'https://script.google.com/macros/s/AKfycbzRSrzd5BKaT7oWO7B6UqETzUBvMAenPkNxFT5oBj60dJ-jOr1-48jNsvOMzR4_qZjv1g/exe',            // Apps Script Web App URL（留空＝本機模式）
+  sheetUrl: 'https://drive.google.com/drive/folders/1oi3fSddtECfcj-Bm3Lelxfbuw_22jiOe',          // Google 試算表網址（管理端「排程與人員」的一鍵開啟用）
+};
+const WD = ['日','一','二','三','四','五','六'];
+const REGIONS = ['台北','桃園','台中','嘉義','台南','高雄'];
+
+/* ── 資料層（可抽換）───────────────────────────────────── */
+const KEY = 'airspace_logi_v1';
+const DB = {
+  mode: CFG.apiUrl ? 'sheets' : 'local',
+  d: null,
+  load(){
+    if(this.d) return this.d;
+    try{ this.d = JSON.parse(localStorage.getItem(KEY)) || null; }catch(e){ this.d=null; }
+    if(!this.d) this.d = {days:{}, ident:null, ver:1};
+    return this.d;
+  },
+  save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(this.d)); }catch(e){}
+    if(this.mode==='sheets') this.push();
+  },
+  async push(){ /* Apps Script 寫入：見 Apps_Script_後端.gs 的 doPost */ },
+  reset(){ this.d={days:{},ident:null,ver:1}; this.save(); }
+};
+
+/* ── 工具 ─────────────────────────────────────────────── */
+const TASKMAP = {}; M.tasks.forEach(t=>TASKMAP[t[0]]={code:t[0],name:t[1],kind:t[2],onlyType:t[3]||''});
+const STORE = {}; M.stores.forEach(s=>STORE[s.id]=s);
+const DRV = {}; M.drivers.forEach(d=>DRV[d[0]]={id:d[0],name:d[1],emp:d[2],region:d[3],route:d[4],on:d[5],off:d[6],ab:d[7],status:d[8]});
+const RTE = {}; M.routes.forEach(r=>RTE[r[0]]={id:r[0],region:r[1],name:r[2],driver:r[3],days:r[4],status:r[5],desc:r[6]});
+const REASON = M.reasons.map(r=>({code:r[0],name:r[1],cat:r[2],needTxt:!!r[3],needAudit:!!r[4]}));
+
+const pad=n=>String(n).padStart(2,'0');
+const toMin=t=>{const[a,b]=t.split(':');return +a*60+ +b;};
+const toHM=m=>pad(Math.floor(m/60))+':'+pad(m%60);
+const todayStr=(dt)=>{const d=dt||new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
+const nowHM=()=>{const d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes());};
+const nowISO=()=>new Date().toISOString();
+const dowOf=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d).getDay();};
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ── 隨到隨生成：核心 ────────────────────────────────────
+   司機點名字的當下才呼叫。查不到就即時生成，不依賴任何定時任務。 */
+function ensureDay(driverId, dateStr){
+  const db=DB.load(), k=dateStr+'|'+driverId;
+  if(db.days[k]) return db.days[k];
+
+  const drv=DRV[driverId]; if(!drv) return null;
+  const dow=dowOf(dateStr);
+  if(dow===0||dow===6) { db.days[k]={date:dateStr,driver:driverId,route:null,weekend:true,stops:[]}; DB.save(); return db.days[k]; }
+  const dk=String(dow);
+
+  // 找當日生效路線（同一司機可有多條，依適用星期）
+  const rt = M.routes.filter(r=>r[3]===driverId && r[4].includes(dk)).map(r=>RTE[r[0]])[0];
+  if(!rt){ db.days[k]={date:dateStr,driver:driverId,route:null,noRoute:true,stops:[]}; DB.save(); return db.days[k]; }
+
+  const abKey = drv.ab, ab = M.ab[abKey];
+  const allTasks = ab ? Object.keys(ab.m) : [];                        // 固定清單
+  const dayTasks = ab ? allTasks.filter(c=>ab.m[c].includes(dk)) : []; // 當日有勾的
+
+  const stops = M.stations
+    .filter(s=>s.route===rt.id && s.days.includes(dk))
+    .sort((a,b)=>toMin(a.arrive)-toMin(b.arrive) || a.seq-b.seq)
+    .map(s=>{
+      let codes=[];
+      // 作業型：固定顯示全部工作項目（邏輯統一）；當日未勾者標 sched=false
+      if(s.mode==='WORK')      codes = allTasks.concat(s.extra||[]);
+      else if(s.mode==='HANDOVER') codes = (s.extra&&s.extra.length)? s.extra : ['F1','F2'];
+      else if(s.mode==='SHIP')     codes = ['F3','F4'];
+      else if(s.mode==='WAREHOUSE')codes = ['F5'];
+      else if(s.mode==='FIXED')    codes = s.extra||[];
+      if(s.cont) codes = [];          // 休息前後同店續作，項目不重複計算
+      // 門市型態限定：例如濾網清潔只在街邊店出現，百貨店完全不顯示
+      codes = codes.filter(c=>{
+        const ot=(TASKMAP[c]||{}).onlyType;
+        if(!ot) return true;
+        return (s.stores||[]).some(id=>(STORE[id]||{}).type===ot);
+      });
+      if(s.share) codes = [];         // 用餐後續作，與來源站共用同一組項目
+      codes=[...new Set(codes)];
+      return {
+        id: rt.id+'_'+dk+'_'+s.seq,
+        shareFrom: s.share ? (rt.id+'_'+dk+'_'+s.share) : null,
+        seq:s.seq, type:s.type, mode:s.mode, visit:s.visit,
+        label:s.label, stores:s.stores, note:s.note,
+        arrive:s.arrive, leave:s.leave,
+        inAt:null, outAt:null, inGeo:null, outGeo:null,
+        tasks: codes.map(c=>({
+          code:c, name:(TASKMAP[c]||{}).name||c,
+          sched: ((TASKMAP[c]||{}).kind==='FIX') ? true : dayTasks.indexOf(c)>=0,
+          st:null, at:null, reason:null }))
+      };
+    });
+
+  db.days[k]={date:dateStr, driver:driverId, route:rt.id, routeName:rt.name, stops,
+              building: stops.length===0, closed:false, closedAt:null};
+  DB.save();
+  return db.days[k];
+}
+
+/* ── 續作站：工作項目與來源站共用同一份 ─────────────────── */
+function host(day, stop){
+  if(stop && stop.shareFrom){
+    const src=(day.stops||[]).filter(x=>x.id===stop.shareFrom)[0];
+    if(src) return src;
+  }
+  return stop;
+}
+
+/* ── 完成度：只算工作項目（不適用不計入分母）───────────── */
+function calc(day){
+  let need=0, done=0, na=0, miss=0, unrep=0, off=0;
+  let stopTot=0, stopIn=0, punct=0, punchTot=0, late=0;
+  (day.stops||[]).forEach(s=>{
+    if(s.type==='STORE'||s.type==='WAREHOUSE'||s.type==='SHIP'){
+      stopTot++; if(s.inAt) stopIn++;
+    }
+    if(s.inAt){ punchTot++; const d=toMin(s.inAt)-toMin(s.arrive); if(Math.abs(d)<=CFG.toleranceMin) punct++; if(d>CFG.toleranceMin) late++; }
+    if(s.outAt){ punchTot++; const d=toMin(s.outAt)-toMin(s.leave); if(Math.abs(d)<=CFG.toleranceMin) punct++; }
+    (s.tasks||[]).forEach(t=>{
+      if(t.sched===false){ off++; return; }   // 本日未排程：不計分子也不計分母
+      need++;
+      if(t.st==='done') done++;
+      else if(t.st==='na') na++;
+      else if(t.st==='miss') miss++;
+      else if(s.outAt) unrep++;   // 已離店卻未回報
+    });
+  });
+  const den = need - na;
+  return {
+    need, done, na, miss, unrep, den, off,
+    pct: den>0 ? Math.round(done/den*1000)/10 : (need>0?0:100),
+    naPct: need>0 ? Math.round(na/need*1000)/10 : 0,
+    stopTot, stopIn, stopPct: stopTot>0?Math.round(stopIn/stopTot*1000)/10:0,
+    punct, punchTot, punctPct: punchTot>0?Math.round(punct/punchTot*1000)/10:0,
+    late
+  };
+}
+
+/* ── 站點狀態機（四道鎖）──────────────────────────────── */
+function stopState(day, i){
+  const s=day.stops[i];
+  if(s.outAt) return 'done';
+  if(s.inAt)  return 'active';
+  // 前面所有「同一時段之前」的站點是否都已離店
+  const myA=toMin(s.arrive);
+  const prior=day.stops.filter((x,j)=>j<i && toMin(x.arrive)<myA
+              && x.type!=='TRAVEL' && x.type!=='REST');
+  const blocked=prior.some(x=>!x.outAt);
+  return blocked ? 'locked' : 'ready';
+}
+function judge(actual, plan){
+  if(!actual) return null;
+  const d=toMin(actual)-toMin(plan);
+  if(Math.abs(d)<=CFG.toleranceMin) return {k:'ok',t:'準時',d};
+  return d>0 ? {k:'late',t:(d>0?'晚 '+d+' 分':''),d} : {k:'early',t:'早 '+(-d)+' 分',d};
+}
+
+/* ── 靜默定位（不擋流程）──────────────────────────────── */
+function grabGeo(cb){
+  if(!CFG.captureGeo || !navigator.geolocation){ cb(null); return; }
+  let done=false;
+  const fin=v=>{ if(!done){done=true; cb(v);} };
+  navigator.geolocation.getCurrentPosition(
+    p=>fin({lat:+p.coords.latitude.toFixed(6),lng:+p.coords.longitude.toFixed(6),acc:Math.round(p.coords.accuracy)}),
+    ()=>fin(null), {enableHighAccuracy:true,timeout:4000,maximumAge:60000});
+  setTimeout(()=>fin(null),4200);
+}
+
+/* ══════════════════════════════════════════════════════════
+   畫面
+   ══════════════════════════════════════════════════════════ */
+let ST = { view:'home', region:null, driver:null, date:todayStr(), stop:null, tab:'board', modal:null };
+const $ = () => document.getElementById('root');
+function go(v,patch){ Object.assign(ST,patch||{},{view:v}); render(); window.scrollTo(0,0); }
+
+function render(){
+  const v=ST.view;
+  if(v==='home')   return $().innerHTML=viewHome();
+  if(v==='routes') return $().innerHTML=viewRoutes();
+  if(v==='day')    return $().innerHTML=viewDay();
+  if(v==='stop')   return $().innerHTML=viewStop();
+  if(v==='admin')  return $().innerHTML=viewAdmin();
+}
+
+/* ── 首頁 ── */
+function viewHome(){
+  const db=DB.load();
+  const remembered = db.ident && DRV[db.ident] ? DRV[db.ident] : null;
+  return `<div class="app">
+    <div class="hero">
+      <div class="lg">AIR SPACE ／ 新地國際</div>
+      <h1>倉儲物流工作回報</h1>
+      <p>${todayStr()} 　星期${WD[new Date().getDay()]}</p>
+    </div>
+    <div class="body">
+      ${remembered?`
+      <div class="secttl">上次使用</div>
+      <div class="rlist"><button onclick="pickDriver('${remembered.id}')">
+        <div class="nm">${esc(remembered.name)}</div>
+        <div class="mt">${esc(remembered.region)}區 · ${esc(RTE[remembered.route]?RTE[remembered.route].name:'')} · ${remembered.on}–${remembered.off}</div>
+        <div class="rt">點此直接開始今日行程</div>
+      </button></div>`:''}
+      <div class="secttl">請選擇你的區域</div>
+      <div class="pick">
+        ${REGIONS.map(r=>{
+          const n=M.drivers.filter(d=>d[3]===r&&d[8]==='在職').length;
+          return `<button ${n?'':'disabled'} onclick="go('routes',{region:'${r}'})">${r}<small>${n} 位司機</small></button>`;
+        }).join('')}
+      </div>
+      <div class="secttl">管理端</div>
+      <button class="btn btn-gh" onclick="go('admin')">倉儲部 ／ 總部看板</button>
+    </div>
+    <div class="foot">v1.0 · 資料模式：${DB.mode==='local'?'本機（示範）':'Google Sheets'}<br>
+      <a class="linkbtn" href="javascript:void(0)" onclick="if(confirm('確定清除本機所有打卡與回報資料？'))(DB.reset(),render())">清除本機資料</a>
+    </div>
+  </div>`;
+}
+
+/* ── 選路線 ── */
+function viewRoutes(){
+  const list=M.routes.filter(r=>r[1]===ST.region);
+  return `<div class="app">
+    <div class="bar"><button class="back" onclick="go('home')">‹</button>
+      <div class="ttl">${esc(ST.region)}區<div class="sub">請選擇你的路線與姓名</div></div></div>
+    <div class="body"><div class="rlist">
+      ${list.map(r=>{
+        const rt=RTE[r[0]], d=DRV[rt.driver]||null;
+        const live = rt.status==='上線' && d && d.status==='在職';
+        const nm = live ? d.name : '（待分配）';
+        const hint = (rt.status==='待分配')
+          ? `${rt.name} 目前沒有司機。\\n\\n排程已完整保留（${M.stations.filter(x=>x.route===rt.id).length} 個站點），\\n新司機到職後在試算表把名字掛上路線代碼即可立即使用。`
+          : `${rt.name} 的排程尚在建置中。\\n\\n路線代碼已建立，補上站點後即可使用，無需重建系統。`;
+        return `<button onclick="${live?`pickDriver('${d.id}')`:`alert('${hint}')`}">
+          <div class="nm">${esc(nm)}</div>
+          <div class="mt">${esc(rt.name)}${d?` · ${d.on}–${d.off}`:''}</div>
+          <div class="rt">${esc(rt.desc)}</div>
+          ${live?'':`<span class="bd">${rt.status==='待分配'?'待分配 · 排程已保留':'排程建置中'}</span>`}
+        </button>`;}).join('')}
+    </div></div></div>`;
+}
+function pickDriver(id){
+  const db=DB.load(); db.ident=id; DB.save();
+  go('day',{driver:id,date:todayStr()});
+}
+
+/* ── 今日行程 ── */
+function viewDay(){
+  const drv=DRV[ST.driver];
+  const day=ensureDay(ST.driver, ST.date);
+  const c=calc(day);
+
+  if(day.weekend) return shellDay(drv,day,c,`<div class="note">今天是週末，此路線僅適用週一至週五。</div>`);
+  if(day.noRoute||day.building) return shellDay(drv,day,c,`<div class="warnbox"><b>此路線排程尚在建置中。</b><br>路線代碼已建立，補上站點資料後系統會自動生成每日任務，不需重建系統。<br><br>建置中期間不會計入完成度統計，也不會產生未到站紅燈。</div>`);
+
+  const cards=day.stops.map((s,i)=>{
+    const stt=stopState(day,i);
+    const c2=calc({stops:[host(day,s)]});
+    const ji=judge(s.inAt,s.arrive), jo=judge(s.outAt,s.leave);
+    const isPassive = s.type==='TRAVEL'||s.type==='REST';
+    return `<div class="stop ${stt}">
+      <div class="hd">
+        <div class="sq">${isPassive?(s.type==='REST'?'休':'車'):s.seq}</div>
+        <div class="in">
+          <div class="nm">${esc(s.label)}</div>
+          <div class="tm">${s.arrive} – ${s.leave}${c2.need?` · ${c2.need} 項`:''}</div>
+          <div class="tags">
+            ${s.visit>1?`<span class="tag t-v2">第${s.visit}次·作業</span>`:(s.mode==='WORK'?'<span class="tag t-v2">作業</span>':'')}
+            ${s.visit===1&&s.mode==='HANDOVER'?'<span class="tag t-v1">第1次·收送貨</span>':''}
+            ${s.mode==='SHIP'?'<span class="tag t-info">寄貨</span>':''}
+            ${s.mode==='WAREHOUSE'?'<span class="tag t-info">倉庫</span>':''}
+            ${ji?`<span class="tag ${ji.k==='ok'?'t-ok':'t-warn'}">到 ${s.inAt}${ji.k!=='ok'?' · '+ji.t:''}</span>`:''}
+            ${jo?`<span class="tag ${jo.k==='ok'?'t-ok':'t-warn'}">離 ${s.outAt}${jo.k!=='ok'?' · '+jo.t:''}</span>`:''}
+            ${(s.outAt&&c2.miss)?`<span class="tag t-bad">未完成 ${c2.miss}</span>`:''}
+            ${(s.outAt&&c2.unrep)?`<span class="tag t-bad">未回報 ${c2.unrep}</span>`:''}
+          </div>
+          ${s.note?`<div class="tm" style="color:var(--ink3);margin-top:5px">${esc(s.note)}</div>`:''}
+        </div>
+      </div>
+      ${isPassive?'':`<div class="ft">
+        ${stt==='ready'?`<button class="btn btn-go" onclick="clockIn(${i})">到店打卡</button>`:''}
+        ${stt==='locked'?`<button class="btn" disabled>前一站尚未離店</button>`:''}
+        ${stt==='active'?`<button class="btn btn-go" onclick="go('stop',{stop:${i}})">進行作業（${c2.done}/${c2.need}）</button>`:''}
+        ${stt==='done'?`<button class="btn btn-ok" onclick="go('stop',{stop:${i}})">已離店 · 檢視（${c2.done}/${c2.den}）</button>`:''}
+      </div>`}
+    </div>`;
+  }).join('');
+
+  const allOut=day.stops.filter(s=>s.type!=='TRAVEL'&&s.type!=='REST').every(s=>s.outAt);
+  const foot = day.closed
+    ? `<div class="note"><b>今日已完成回報</b>　${day.closedAt}<br>完成度 ${c.pct}%　·　到站 ${c.stopIn}/${c.stopTot}　·　未完成 ${c.miss} 項</div>`
+    : (allOut?`<button class="btn btn-out" onclick="closeDay()">下班回報</button>`:'');
+
+  return shellDay(drv,day,c,cards+`<div style="margin-top:16px">${foot}</div>`);
+}
+function shellDay(drv,day,c,inner){
+  return `<div class="app">
+    <div class="bar"><button class="back" onclick="go('home')">‹</button>
+      <div class="ttl">${esc(drv.name)}<div class="sub">${esc(day.routeName||RTE[drv.route].name)} · ${ST.date} 週${WD[dowOf(ST.date)]}</div></div>
+      <button class="act" onclick="go('home')">切換</button></div>
+    <div class="prog">
+      <div class="row"><div><div class="big">${c.pct}<span style="font-size:16px">%</span></div><div class="lb">今日完成度</div></div>
+        <div style="text-align:right"><div class="lb">已完成 ${c.done} / 應做 ${c.den}</div>
+        <div class="lb">到站 ${c.stopIn}/${c.stopTot} · 準時 ${c.punctPct}%</div></div></div>
+      <div class="tr"><div class="tf" style="width:${c.pct}%"></div></div>
+      <div class="st"><span>未完成 ${c.miss}</span><span>不適用 ${c.na}</span><span>未回報 ${c.unrep}</span></div>
+    </div>
+    <div class="body">${inner}</div></div>`;
+}
+
+/* ── 打卡 ── */
+function clockIn(i){
+  const day=ensureDay(ST.driver,ST.date), s=day.stops[i];
+  const t=nowHM();
+  grabGeo(g=>{ s.inAt=t; s.inGeo=g; s.inISO=nowISO(); DB.save(); go('stop',{stop:i}); });
+}
+function clockOut(){
+  const day=ensureDay(ST.driver,ST.date), s=day.stops[ST.stop];
+  const un=host(day,s).tasks.filter(t=>t.sched!==false && !t.st);
+  if(un.length){ ST.modal={type:'confirmOut',n:un.length}; return render(); }
+  doOut();
+}
+function doOut(){
+  const day=ensureDay(ST.driver,ST.date), s=day.stops[ST.stop];
+  const t=nowHM();
+  grabGeo(g=>{ s.outAt=t; s.outGeo=g; s.outISO=nowISO(); ST.modal=null; DB.save(); go('day'); });
+}
+function closeDay(){
+  const day=ensureDay(ST.driver,ST.date);
+  day.closed=true; day.closedAt=nowHM(); DB.save(); render();
+}
+
+/* ── 站點作業 ── */
+function viewStop(){
+  const day=ensureDay(ST.driver,ST.date), s=day.stops[ST.stop];
+  const h=host(day,s);                       // 續作站 → 指向來源站的項目
+  const c=calc({stops:[h]});
+  const ji=judge(s.inAt,s.arrive);
+  const locked=!s.inAt, closed=!!s.outAt;
+  const stores=(s.stores||[]).map(id=>STORE[id]).filter(Boolean);
+
+  const tasks=h.tasks.map((t,ti)=>{
+    if(t.sched===false) return `<div class="tk off"><div class="tr">
+      <div class="cb">—</div><div class="nm">${esc(t.name)}</div>
+      <span class="tag t-mute">本日未排程</span></div></div>`;
+    const cls=t.st==='done'?'done':t.st==='miss'?'miss':t.st==='na'?'na':'';
+    const mk=t.st==='done'?'✓':t.st==='miss'?'!':t.st==='na'?'–':'';
+    return `<div class="tk ${cls}">
+      <div class="tr">
+        <div class="cb">${mk}</div>
+        <div class="nm">${esc(t.name)}</div>
+        ${closed?'':`
+        <button class="mini" onclick="setTask(${ti},'done')">完成</button>
+        <button class="mini" onclick="setTask(${ti},'miss')">未完成</button>
+        <button class="mini" onclick="setTask(${ti},'na')">不適用</button>`}
+      </div>
+      ${(t.st==='miss'||t.st==='na')?`<div class="rs">
+        <select ${closed?'disabled':''} onchange="setReason(${ti},this.value)">
+          <option value="">請選擇原因…</option>
+          ${REASON.map(r=>`<option value="${r.code}" ${t.reason===r.code?'selected':''}>${r.code} ${r.name}</option>`).join('')}
+        </select>
+      </div>`:''}
+    </div>`;
+  }).join('');
+
+  return `<div class="app">
+    <div class="bar"><button class="back" onclick="go('day')">‹</button>
+      <div class="ttl">${esc(s.label)}<div class="sub">${s.arrive} – ${s.leave}${s.note?' · '+esc(s.note):''}</div></div></div>
+    <div class="body">
+      ${s.shareFrom?`<div class="warnbox"><b>用餐後續作</b><br>以下是 ${esc((day.stops.filter(x=>x.id===s.shareFrom)[0]||{}).arrive||'')} 那一段尚未完成的同一組工作項目，接續完成即可，不會重複計分。</div>`:''}
+      ${locked?`<div class="warnbox"><b>尚未到店打卡</b><br>工作項目在到店打卡後才會解鎖。</div>`:
+        `<div class="note"><b>到店 ${s.inAt}</b>（預定 ${s.arrive}）　${ji?ji.t:''}
+        ${s.inGeo?`<br><span style="color:var(--ink3)">定位已記錄 · 精度 ±${s.inGeo.acc}m</span>`:''}
+        ${s.outAt?`<br><b>離店 ${s.outAt}</b>（預定 ${s.leave}）`:''}</div>`}
+
+      ${stores.length?`<div class="secttl">門市資訊</div>
+        <div class="note" style="background:var(--soft);border-color:var(--line);color:var(--ink2)">
+        ${stores.map(x=>`<div><b>${esc(x.id)} ${esc(x.name)}</b> · ${esc(x.city)}${esc(x.dist)} · ${esc(x.line)} · ${esc(x.grade)}級 · 區主管 ${esc(x.mgr)}</div>`).join('')}
+        </div>`:''}
+
+      <div class="secttl">工作項目　${c.done}/${c.need}${c.na?`（不適用 ${c.na}）`:''}${c.off?`　·　本日未排程 ${c.off} 項`:''}</div>
+      ${(!locked&&!closed)?`<button class="btn btn-ok" style="margin-bottom:11px" onclick="allDone()">✓ 本站全部完成</button>`:''}
+      <div style="${locked?'opacity:.4;pointer-events:none':''}">${tasks||'<div class="note">此站無工作項目，僅需打卡。</div>'}</div>
+
+      ${(!locked&&!closed)?`<div style="margin-top:16px"><button class="btn btn-out" onclick="clockOut()">離店打卡</button></div>`:''}
+      ${closed?`<div class="note" style="margin-top:16px">此站已離店，紀錄鎖定。</div>`:''}
+    </div>
+    ${ST.modal?modalOut():''}
+  </div>`;
+}
+function modalOut(){
+  return `<div class="mask" onclick="if(event.target===this)(ST.modal=null,render())"><div class="sheet">
+    <h3>還有 ${ST.modal.n} 項未回報</h3>
+    <div class="sd">未完成的項目請下拉選一個原因即可。你也可以選擇直接離店 —— 未回報的項目會自動計為未完成，並顯示在倉儲部看板上。</div>
+    <button class="btn btn-go" style="margin-bottom:9px" onclick="ST.modal=null;render()">回去填寫原因</button>
+    <button class="btn btn-gh" onclick="doOut()">仍要離店（記為未回報）</button>
+  </div></div>`;
+}
+function setTask(ti,v){
+  const day=ensureDay(ST.driver,ST.date), t=host(day,day.stops[ST.stop]).tasks[ti];
+  if(!t || t.sched===false) return;          // 本日未排程的項目不可操作
+  t.st = (t.st===v? null : v); t.at = t.st? nowHM(): null;
+  if(t.st==='done'){ t.reason=null; }
+  DB.save(); render();
+}
+function setReason(ti,v){ const d=ensureDay(ST.driver,ST.date); host(d,d.stops[ST.stop]).tasks[ti].reason=v||null; DB.save(); }
+function allDone(){
+  const day=ensureDay(ST.driver,ST.date);
+  host(day,day.stops[ST.stop]).tasks.forEach(t=>{ if(t.sched!==false && !t.st){ t.st='done'; t.at=nowHM(); } });
+  DB.save(); render();
+}
+
+/* ══════════════════════════════════════════════════════════
+   管理端
+   ══════════════════════════════════════════════════════════ */
+function viewAdmin(){
+  const tab=ST.tab||'board';
+  return `<div class="app wide">
+    <div class="bar"><button class="back" onclick="go('home')">‹</button>
+      <div class="ttl">管理端<div class="sub">倉儲部即時看板 ／ 總部完成度儀表</div></div></div>
+    <div class="tabs">
+      <button class="${tab==='board'?'on':''}" onclick="go('admin',{tab:'board'})">即時看板</button>
+      <button class="${tab==='dash'?'on':''}" onclick="go('admin',{tab:'dash'})">完成度</button>
+      <button class="${tab==='reason'?'on':''}" onclick="go('admin',{tab:'reason'})">原因分析</button>
+      <button class="${tab==='export'?'on':''}" onclick="go('admin',{tab:'export'})">匯出</button>
+      <button class="${tab==='admin2'?'on':''}" onclick="go('admin',{tab:'admin2'})">排程與人員</button>
+    </div>
+    <div class="body">${tab==='board'?tabBoard():tab==='dash'?tabDash():tab==='reason'?tabReason():tab==='export'?tabExport():tabMaster()}</div>
+  </div>`;
+}
+
+function activeDrivers(){ return M.drivers.filter(d=>d[8]==='在職').map(d=>DRV[d[0]]); }
+
+function tabBoard(){
+  const date=ST.date, dow=dowOf(date);
+  const rows=activeDrivers().map(d=>{
+    const day=ensureDay(d.id,date), c=calc(day);
+    const cur=(day.stops||[]).find(s=>s.inAt&&!s.outAt);
+    const nxt=(day.stops||[]).find(s=>!s.inAt);
+    const nm=nowHM();
+    let stt,cls;
+    if(day.closed){stt='已下班';cls='t-ok';}
+    else if(cur){stt=cur.type==='TRAVEL'?'車程中':cur.type==='REST'?'休息中':'在店中';cls='t-info';}
+    else if(nxt&&toMin(nm)>toMin(nxt.leave)+CFG.overdueMin){stt='逾時未打卡';cls='t-bad';}
+    else if(!day.route){stt='排程建置中';cls='t-mute';}
+    else if(!day.stops.some(s=>s.inAt)){stt='尚未開始';cls='t-mute';}
+    else stt='移動中',cls='t-mute';
+    const g=day.stops&&day.stops.length?ganttOf(day):'';
+    return `<tr>
+      <td><b>${esc(d.name)}</b><br><span style="color:var(--ink3);font-size:11px">${esc(d.region)} · ${esc(RTE[d.route].name)}</span></td>
+      <td><span class="tag ${cls}">${stt}</span><br><span style="font-size:11px;color:var(--ink3)">${esc(cur?cur.label:(nxt?'下一站 '+nxt.label:'—'))}</span></td>
+      <td>${g}</td>
+      <td style="min-width:110px">${c.den>0?`<b>${c.pct}%</b><div class="mini-tr"><div class="mini-tf" style="width:${c.pct}%"></div></div><span style="font-size:11px;color:var(--ink3)">${c.done}/${c.den}</span>`:'—'}</td>
+      <td class="c">${c.stopIn}/${c.stopTot}</td>
+      <td class="c">${c.late?`<span class="tag t-warn">${c.late}</span>`:'0'}</td>
+      <td class="c">${c.miss+c.unrep?`<span class="tag t-bad">${c.miss+c.unrep}</span>`:'0'}</td>
+    </tr>`;
+  }).join('');
+
+  const all=activeDrivers().map(d=>calc(ensureDay(d.id,date)));
+  const tot=all.reduce((a,b)=>({den:a.den+b.den,done:a.done+b.done,miss:a.miss+b.miss,unrep:a.unrep+b.unrep,late:a.late+b.late}),{den:0,done:0,miss:0,unrep:0,late:0});
+  const pct=tot.den>0?Math.round(tot.done/tot.den*1000)/10:0;
+
+  return `<div class="kpi">
+    <div class="c"><div class="k">全台完成度</div><div class="v">${pct}%</div><div class="d">${tot.done} / ${tot.den} 項</div></div>
+    <div class="c"><div class="k">在線司機</div><div class="v">${activeDrivers().length}</div><div class="d">7 條路線上線 · 台北 3 條建置中</div></div>
+    <div class="c"><div class="k">遲到次數</div><div class="v">${tot.late}</div><div class="d">容差 ±${CFG.toleranceMin} 分</div></div>
+    <div class="c"><div class="k">未完成／未回報</div><div class="v">${tot.miss+tot.unrep}</div><div class="d">需追蹤</div></div>
+  </div>
+  <div style="display:flex;gap:9px;align-items:center;margin-bottom:11px">
+    <input type="date" value="${date}" onchange="go('admin',{date:this.value,tab:'board'})"
+      style="padding:8px 11px;border:1.5px solid var(--line);border-radius:8px">
+    <span style="font-size:12.5px;color:var(--ink3)">星期${WD[dow]}　·　每 30 秒自動更新</span>
+  </div>
+  <div class="tw"><table>
+    <thead><tr><th>司機</th><th>狀態</th><th>時間軸（灰＝預定 ／ 藍＝實際）</th><th>完成度</th><th class="c">到站</th><th class="c">遲到</th><th class="c">異常</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>
+  <div style="font-size:12px;color:var(--ink3);margin-top:10px">
+    到站率與準時率並列顯示，不計入完成度分數（依定案口徑：完成度只算工作項目）。</div>`;
+}
+function ganttOf(day){
+  const st=day.stops.filter(s=>s.type!=='TRAVEL');
+  if(!st.length) return '—';
+  const a=toMin(day.stops[0].arrive), b=toMin(day.stops[day.stops.length-1].leave), span=b-a||1;
+  const bars=day.stops.map(s=>{
+    const x=(toMin(s.arrive)-a)/span*100, w=Math.max((toMin(s.leave)-toMin(s.arrive))/span*100,1.2);
+    return `<i class="p" style="left:${x}%;width:${w}%"></i>`;
+  }).join('')+day.stops.filter(s=>s.inAt).map(s=>{
+    const e=s.outAt||nowHM();
+    const x=(toMin(s.inAt)-a)/span*100, w=Math.max((toMin(e)-toMin(s.inAt))/span*100,1.2);
+    return `<i class="a" style="left:${Math.max(0,Math.min(100,x))}%;width:${Math.min(w,100)}%"></i>`;
+  }).join('');
+  return `<div class="gantt">${bars}</div>`;
+}
+
+function weekOf(dateStr){
+  const [y,m,d]=dateStr.split('-').map(Number);
+  const dt=new Date(y,m-1,d); const dow=dt.getDay()||7;
+  dt.setDate(dt.getDate()-(dow-1));
+  return [...Array(5)].map((_,i)=>{const x=new Date(dt);x.setDate(dt.getDate()+i);return todayStr(x);});
+}
+function tabDash(){
+  const days=weekOf(ST.date);
+  const rows=activeDrivers().map(d=>{
+    const cs=days.map(dt=>calc(ensureDay(d.id,dt)));
+    const den=cs.reduce((a,c)=>a+c.den,0), done=cs.reduce((a,c)=>a+c.done,0);
+    const pct=den>0?Math.round(done/den*1000)/10:0;
+    const na=cs.reduce((a,c)=>a+c.na,0), need=cs.reduce((a,c)=>a+c.need,0);
+    const naPct=need>0?Math.round(na/need*1000)/10:0;
+    return {d,cs,pct,den,done,naPct,
+      miss:cs.reduce((a,c)=>a+c.miss+c.unrep,0), late:cs.reduce((a,c)=>a+c.late,0)};
+  }).sort((a,b)=>b.pct-a.pct);
+
+  return `<div style="margin-bottom:11px;font-size:13px;color:var(--ink2)">
+    本週 <b>${days[0]}</b> ～ <b>${days[4]}</b>　·　完成度 ＝ 已完成 ÷（應做 − 不適用）</div>
+  <div class="tw"><table>
+    <thead><tr><th class="c">名次</th><th>司機</th><th>週完成度</th>
+      ${days.map((dt,i)=>`<th class="c">週${WD[i+1]}</th>`).join('')}
+      <th class="c">未完成</th><th class="c">遲到</th><th class="c">不適用率</th></tr></thead>
+    <tbody>${rows.map((r,i)=>`<tr>
+      <td class="c"><b>${i+1}</b></td>
+      <td><b>${esc(r.d.name)}</b><br><span style="font-size:11px;color:var(--ink3)">${esc(r.d.region)}</span></td>
+      <td style="min-width:120px"><b>${r.pct}%</b><div class="mini-tr"><div class="mini-tf" style="width:${r.pct}%;background:${r.pct>=90?'var(--ok)':r.pct>=70?'#d19a00':'var(--bad)'}"></div></div>
+        <span style="font-size:11px;color:var(--ink3)">${r.done}/${r.den}</span></td>
+      ${r.cs.map(c=>`<td class="c">${c.den>0?c.pct+'%':'—'}</td>`).join('')}
+      <td class="c">${r.miss?`<span class="tag t-bad">${r.miss}</span>`:'0'}</td>
+      <td class="c">${r.late||0}</td>
+      <td class="c">${r.naPct>=CFG.naAlertPct?`<span class="tag t-warn">${r.naPct}%</span>`:r.naPct+'%'}</td>
+    </tr>`).join('')}</tbody></table></div>
+  <div style="font-size:12px;color:var(--ink3);margin-top:10px">
+    不適用率連續兩週超過 ${CFG.naAlertPct}% 者自動列入異常清單。</div>`;
+}
+
+function tabReason(){
+  const days=weekOf(ST.date), cnt={}, byDrv={};
+  activeDrivers().forEach(d=>{
+    days.forEach(dt=>{
+      const day=ensureDay(d.id,dt);
+      (day.stops||[]).forEach(s=>(s.tasks||[]).forEach(t=>{
+        if(t.st==='miss'||t.st==='na'){
+          const k=t.reason||'（未填原因）';
+          cnt[k]=(cnt[k]||0)+1;
+          byDrv[k]=byDrv[k]||{}; byDrv[k][d.name]=(byDrv[k][d.name]||0)+1;
+        }
+      }));
+    });
+  });
+  const tot=Object.values(cnt).reduce((a,b)=>a+b,0);
+  if(!tot) return `<div class="note">本週尚無未完成或不適用紀錄。<br>有資料後，這裡會顯示原因分布 —— 這張表才是真正能改善營運的東西：<b>R05 前站延誤連鎖</b>與 <b>R06 時間不足</b>佔比高，代表該調整的是排程，不是司機。</div>`;
+  const rows=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{
+    const r=REASON.find(x=>x.code===k);
+    const pct=Math.round(v/tot*1000)/10;
+    return `<tr><td><b>${esc(k)}</b> ${esc(r?r.name:'')}</td><td>${esc(r?r.cat:'—')}</td>
+      <td class="c">${v}</td><td style="min-width:130px"><div class="mini-tr"><div class="mini-tf" style="width:${pct}%;background:${r&&r.cat==='排程因素'?'#d19a00':'var(--brand)'}"></div></div>${pct}%</td>
+      <td style="font-size:11.5px;color:var(--ink3)">${Object.entries(byDrv[k]||{}).map(([n,c])=>n+' '+c).join('、')}</td></tr>`;
+  }).join('');
+  return `<div style="margin-bottom:11px;font-size:13px;color:var(--ink2)">本週 ${days[0]} ～ ${days[4]}　·　共 ${tot} 筆</div>
+  <div class="tw"><table><thead><tr><th>原因</th><th>類別</th><th class="c">次數</th><th>佔比</th><th>分布</th></tr></thead>
+  <tbody>${rows}</tbody></table></div>
+  <div class="warnbox" style="margin-top:14px"><b>怎麼讀這張表：</b>橘色列（排程因素）佔比高，代表<b>排程本身太緊或不合理</b>，該修的是排程不是人。這是這套系統最有價值的產出。</div>`;
+}
+
+/* ── 匯出：Excel 2003 XML，多分頁、免外掛 ── */
+function tabExport(){
+  const days=weekOf(ST.date);
+  return `<div class="note">匯出格式為 Excel 多分頁檔（.xls），可直接以 Excel／Google 試算表開啟並做樞紐分析。</div>
+  <div class="kpi">
+    <div class="c"><div class="k">本週區間</div><div class="v" style="font-size:16px">${days[0]}<br>～ ${days[4]}</div></div>
+    <div class="c"><div class="k">分頁</div><div class="v" style="font-size:16px">6 個</div>
+      <div class="d">週彙總／逐日明細／打卡明細／原因分析／異常清單／排程對照</div></div>
+  </div>
+  <button class="btn btn-go" style="margin-bottom:10px" onclick="exportWeek()">下載本週工作紀錄與完成度</button>
+  <div style="font-size:12px;color:var(--ink3)">正式版可設定每週一 08:00 自動寄送至總部與倉儲部信箱。</div>`;
+}
+function xmlEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));}
+function sheetXml(name,rows){
+  return `<Worksheet ss:Name="${xmlEsc(name).slice(0,31)}"><Table>`+
+    rows.map(r=>'<Row>'+r.map(c=>{
+      const num = typeof c==='number';
+      return `<Cell><Data ss:Type="${num?'Number':'String'}">${xmlEsc(c)}</Data></Cell>`;
+    }).join('')+'</Row>').join('')+`</Table></Worksheet>`;
+}
+function exportWeek(){
+  const days=weekOf(ST.date), drs=activeDrivers();
+  const S1=[['年週','司機','員編','區域','路線','週完成度%','應做','已完成','不適用','不適用率%','未完成','未回報','到站率%','準時率%','遲到','區主管檢核','檢核意見']];
+  const S2=[['日期','星期','司機','區域','站點','門市代碼','門市名稱','到訪序','作業型態','工作項目','狀態','完成時間','未完成原因']];
+  const S3=[['日期','司機','站點','動作','預定時間','實際時間','誤差分鐘','判定','緯度','經度','定位精度m']];
+  const S4=[['原因代碼','原因','類別','次數','佔比%']];
+  const S5=[['日期','司機','類型','站點','說明','狀態']];
+  const S6=[['路線','區域','司機','適用星期','序','站點','類型','作業型態','到訪序','預定到店','預定離店','說明']];
+  const rc={};
+
+  drs.forEach(d=>{
+    let W={need:0,done:0,na:0,miss:0,unrep:0,stopTot:0,stopIn:0,punct:0,punchTot:0,late:0};
+    days.forEach(dt=>{
+      const day=ensureDay(d.id,dt), c=calc(day);
+      ['need','done','na','miss','unrep','stopTot','stopIn','punct','punchTot','late'].forEach(k=>W[k]+=c[k]);
+      (day.stops||[]).forEach(s=>{
+        const nm=(s.stores||[]).map(i=>(STORE[i]||{}).name||i).join('／');
+        (host(day,s).tasks||[]).filter(()=>!s.shareFrom).forEach(t=>{
+          const r=REASON.find(x=>x.code===t.reason);
+          S2.push([dt,'週'+WD[dowOf(dt)],d.name,d.region,s.label,(s.stores||[]).join('／'),nm,
+            s.visit||'', s.mode||'', t.name,
+            t.sched===false?'本日未排程':
+            t.st==='done'?'完成':t.st==='miss'?'未完成':t.st==='na'?'不適用':(s.outAt?'未回報':'未處理'),
+            t.at||'', t.reason||'']);
+          if(t.st==='miss'||t.st==='na'){const k=t.reason||'（未填）';rc[k]=(rc[k]||0)+1;}
+        });
+        [['到店',s.arrive,s.inAt,s.inGeo],['離店',s.leave,s.outAt,s.outGeo]].forEach(([act,pl,ac,g])=>{
+          if(!ac) return;
+          const j=judge(ac,pl);
+          S3.push([dt,d.name,s.label,act,pl,ac,j.d,j.k==='ok'?'準時':(j.d>0?'遲/滯留':'早退'),
+            g?g.lat:'',g?g.lng:'',g?g.acc:'']);
+        });
+        if(!s.inAt && s.type!=='TRAVEL' && s.type!=='REST')
+          S5.push([dt,d.name,'未打卡',s.label,'預定 '+s.arrive+'–'+s.leave,'待處理']);
+      });
+    });
+    const den=W.need-W.na;
+    S1.push(['W'+isoWeek(days[0]),d.name,d.emp,d.region,RTE[d.route].name,
+      den>0?Math.round(W.done/den*1000)/10:0, den, W.done, W.na,
+      W.need>0?Math.round(W.na/W.need*1000)/10:0, W.miss, W.unrep,
+      W.stopTot>0?Math.round(W.stopIn/W.stopTot*1000)/10:0,
+      W.punchTot>0?Math.round(W.punct/W.punchTot*1000)/10:0, W.late, '', '']);
+  });
+
+  const tot=Object.values(rc).reduce((a,b)=>a+b,0)||1;
+  Object.entries(rc).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{
+    const r=REASON.find(x=>x.code===k);
+    S4.push([k,r?r.name:'（未填原因）',r?r.cat:'',v,Math.round(v/tot*1000)/10]);
+  });
+  M.stations.forEach(s=>{const rt=RTE[s.route];
+    S6.push([rt.name,rt.region,(DRV[rt.driver]||{}).name||'',s.days,s.seq,s.label,s.type,s.mode||'',s.visit||'',s.arrive,s.leave,s.note||'']);
+  });
+
+  const xml=`<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+${sheetXml('①週彙總',S1)}${sheetXml('②逐日明細',S2)}${sheetXml('③打卡明細',S3)}
+${sheetXml('④原因分析',S4)}${sheetXml('⑤異常清單',S5)}${sheetXml('⑥排程對照',S6)}
+</Workbook>`;
+  const blob=new Blob(['﻿'+xml],{type:'application/vnd.ms-excel;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`倉儲物流週報_${days[0]}_${days[4]}.xls`;
+  a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+function isoWeek(ds){
+  const [y,m,d]=ds.split('-').map(Number); const dt=new Date(Date.UTC(y,m-1,d));
+  const dn=dt.getUTCDay()||7; dt.setUTCDate(dt.getUTCDate()+4-dn);
+  const ys=new Date(Date.UTC(dt.getUTCFullYear(),0,1));
+  return Math.ceil(((dt-ys)/86400000+1)/7);
+}
+
+/* ══════════════════════════════════════════════════════════
+   排程與人員 — 異動入口
+   實際編輯在 Google 試算表（單一資料來源），此處提供檢視與導引
+   ══════════════════════════════════════════════════════════ */
+function tabMaster(){
+  const open = CFG.sheetUrl
+    ? `<a class="btn btn-go" style="text-decoration:none" href="${CFG.sheetUrl}" target="_blank">開啟 Google 試算表</a>`
+    : `<button class="btn" disabled>尚未設定試算表網址</button>
+       <div style="font-size:12px;color:var(--ink3);margin-top:6px">
+       在 HTML 的 <code>CFG.sheetUrl</code> 填入試算表網址後，這裡就會變成一鍵開啟。</div>`;
+
+  const drv = M.drivers.map(d=>{
+    const D2=DRV[d[0]], rt=RTE[D2.route]||{};
+    const cnt = M.stations.filter(x=>x.route===D2.route).length;
+    return `<tr>
+      <td><b>${esc(D2.name)}</b></td><td>${esc(D2.emp||'—')}</td><td>${esc(D2.region)}</td>
+      <td>${D2.route?`<code>${esc(D2.route)}</code><br><span style="font-size:11px;color:var(--ink3)">${esc(rt.name||'')}</span>`:'<span class="tag t-mute">未指派</span>'}</td>
+      <td class="c">${D2.on}–${D2.off}</td>
+      <td class="c">${esc(D2.ab||'—')}</td>
+      <td class="c">${D2.status==='在職'?'<span class="tag t-ok">在職</span>':'<span class="tag t-warn">'+esc(D2.status)+'</span>'}</td>
+      <td class="c">${cnt||'<span class="tag t-mute">0</span>'}</td></tr>`;
+  }).join('');
+
+  const rte = M.routes.map(r=>{
+    const R2=RTE[r[0]], d=DRV[R2.driver]||null;
+    const days=[...R2.days].map(x=>'一二三四五'[+x-1]).join('');
+    const cnt=M.stations.filter(x=>x.route===R2.id).length;
+    return `<tr>
+      <td><code>${esc(R2.id)}</code></td><td>${esc(R2.region)}</td>
+      <td>${esc(R2.name)}</td><td>${esc((d&&d.status==='在職')?d.name:'（待分配）')}</td>
+      <td class="c">週${days}</td><td class="c">${cnt}</td>
+      <td class="c">${R2.status==='上線'?'<span class="tag t-ok">上線</span>'
+        :R2.status==='待分配'?'<span class="tag t-info">待分配</span>'
+        :'<span class="tag t-warn">建置中</span>'}</td></tr>`;
+  }).join('');
+
+  return `
+  <div class="note"><b>所有主檔異動都在 Google 試算表進行，這裡是檢視與導引。</b><br>
+    這樣設計的原因：試算表是唯一的資料來源，只有一個地方可以改，就不會出現「App 改了但試算表沒改」的分歧。
+    ${DB.mode==='local'?'<br><br><b style="color:var(--bad)">目前為本機示範模式</b>，尚未連上試算表。接上後端後這裡的一鍵開啟才會生效。':''}</div>
+
+  ${open}
+
+  <div class="secttl" style="margin-top:22px">三種異動情境</div>
+  <div class="tw"><table>
+    <thead><tr><th style="width:16%">情境</th><th style="width:20%">改哪裡</th><th style="width:34%">怎麼做</th><th class="c" style="width:10%">耗時</th><th>要不要改排程</th></tr></thead>
+    <tbody>
+      <tr><td><b>司機換人</b><br><span style="font-size:11px;color:var(--ink3)">到職／離職／代班</span></td>
+        <td><code>M1_司機</code></td>
+        <td>選單 <b>AIR SPACE 物流 → 人員異動精靈</b>，依提示填即可。<br>
+            或直接改 <code>M1_司機</code> 的「路線代碼」欄 → 選單「清除主檔快取」</td>
+        <td class="c"><b>30 秒</b></td>
+        <td><span class="tag t-ok">完全不用</span> 路線與司機解耦</td></tr>
+
+      <tr><td><b>改時間或門市</b><br><span style="font-size:11px;color:var(--ink3)">一兩個站點微調</span></td>
+        <td><code>M4_站點</code></td>
+        <td>直接改儲存格 → 選單 <b>② 驗證並套用排程</b></td>
+        <td class="c"><b>1 分鐘</b></td>
+        <td>只改那幾格</td></tr>
+
+      <tr><td><b>整條路線換版</b><br><span style="font-size:11px;color:var(--ink3)">新增路線／季度調整</span></td>
+        <td><code>M4_站點</code><br><code>M3_路線</code></td>
+        <td>新增站點列（照現有格式）→ <code>M3_路線</code> 狀態改「上線」→ 選單 <b>② 驗證並套用排程</b></td>
+        <td class="c"><b>10 分鐘</b></td>
+        <td>驗證器會逐格檢查</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="warnbox"><b>改完一定要按「② 驗證並套用排程」或「清除主檔快取」。</b>
+    系統為了效能會把主檔快取 5 分鐘，不清快取的話最多要等 5 分鐘才生效。</div>
+
+  <div class="secttl">目前人員配置　${M.drivers.filter(d=>d[8]==='在職').length} 位在職 ／ 共 ${M.drivers.length} 筆</div>
+  <div class="tw"><table>
+    <thead><tr><th>姓名</th><th>員編</th><th>區域</th><th>路線代碼</th><th class="c">工時</th><th class="c">A/B表</th><th class="c">狀態</th><th class="c">站點數</th></tr></thead>
+    <tbody>${drv}</tbody></table></div>
+
+  <div class="secttl">目前路線配置　${M.routes.filter(r=>r[5]==='上線').length} 條上線 ／ ${M.routes.filter(r=>r[5]==='待分配').length} 條待分配 ／ ${M.routes.filter(r=>r[5]==='建置中').length} 條建置中</div>
+  <div class="tw"><table>
+    <thead><tr><th>路線代碼</th><th>區域</th><th>路線名稱</th><th>司機</th><th class="c">適用星期</th><th class="c">站點數</th><th class="c">狀態</th></tr></thead>
+    <tbody>${rte}</tbody></table></div>
+
+  <div class="note" style="margin-top:18px"><b>為什麼「路線 3」「北桃 2」可以先空著</b><br>
+    排程掛在<b>路線代碼</b>上，不是掛在人身上。招募到人只要把名字填進 <code>M1_司機</code> 並指定路線代碼，
+    排程一個字都不用動。站點還沒補的路線會顯示「排程建置中」，不會產生未到站紅燈，也不列入完成度統計。</div>`;
+}
+
+/* ── 看板自動更新 ── */
+setInterval(()=>{ if(ST.view==='admin'&&ST.tab==='board') render(); }, 30000);
+
+/* ── 啟動 ── */
+DB.load(); render();
+</script>
+</body>
+</html>
